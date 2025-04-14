@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,7 @@ import { Github, Mail } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Signup = () => {
   const [firstName, setFirstName] = useState("");
@@ -27,6 +27,13 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,8 +78,17 @@ const Signup = () => {
         description: "Check your email for the confirmation link.",
       });
       
-      // Redirect to the main page
-      navigate("/");
+      // Redirect to the dashboard if auto-confirm is enabled
+      // Otherwise the user will need to verify their email first
+      if (data.user && !data.user.identities![0].identity_data.email_verified) {
+        toast({
+          title: "Email verification required",
+          description: "Check your email for the confirmation link before logging in.",
+        });
+        navigate("/login");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       toast({
         title: "Signup failed",

@@ -1,14 +1,29 @@
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, Menu, X } from "lucide-react";
+import { Search, Menu, X, User, LogOut } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-sm border-b">
@@ -31,12 +46,42 @@ const Navbar = () => {
           <Button variant="ghost" size="icon">
             <Search className="h-5 w-5" />
           </Button>
-          <Link to="/login">
-            <Button variant="outline">Log in</Button>
-          </Link>
-          <Link to="/signup">
-            <Button>Sign up</Button>
-          </Link>
+          
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <User className="h-4 w-4" />
+                  <span>{user.user_metadata?.first_name || 'Account'}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard" className="cursor-pointer">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="cursor-pointer">Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="outline">Log in</Button>
+              </Link>
+              <Link to="/signup">
+                <Button>Sign up</Button>
+              </Link>
+            </>
+          )}
         </div>
         
         <button className="md:hidden" onClick={toggleMenu}>
@@ -54,14 +99,24 @@ const Navbar = () => {
           <Link to="/projects" className="text-gray-600 hover:text-gray-900 py-2">Projects</Link>
           <Link to="/teams" className="text-gray-600 hover:text-gray-900 py-2">Teams</Link>
           <Link to="/about" className="text-gray-600 hover:text-gray-900 py-2">About</Link>
-          <div className="flex flex-col space-y-2 pt-4">
-            <Link to="/login">
-              <Button variant="outline" className="w-full">Log in</Button>
-            </Link>
-            <Link to="/signup">
-              <Button className="w-full">Sign up</Button>
-            </Link>
-          </div>
+          
+          {user ? (
+            <>
+              <Link to="/dashboard" className="text-gray-600 hover:text-gray-900 py-2">Dashboard</Link>
+              <Link to="/profile" className="text-gray-600 hover:text-gray-900 py-2">Profile</Link>
+              <Link to="/settings" className="text-gray-600 hover:text-gray-900 py-2">Settings</Link>
+              <Button onClick={handleLogout}>Log out</Button>
+            </>
+          ) : (
+            <div className="flex flex-col space-y-2 pt-4">
+              <Link to="/login">
+                <Button variant="outline" className="w-full">Log in</Button>
+              </Link>
+              <Link to="/signup">
+                <Button className="w-full">Sign up</Button>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </nav>
