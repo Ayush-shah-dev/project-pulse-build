@@ -1,5 +1,6 @@
 
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -13,8 +14,81 @@ import {
 import { Label } from "@/components/ui/label";
 import { Github, Mail } from "lucide-react";
 import Layout from "@/components/layout/Layout";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Logged in successfully",
+        description: "Welcome back to CollabHub!",
+      });
+      
+      // Redirect to the main page
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid email or password",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGithubLogin = async () => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        title: "GitHub login failed",
+        description: error.message,
+        variant: "destructive"
+      });
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        title: "Google login failed",
+        description: error.message,
+        variant: "destructive"
+      });
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -27,7 +101,7 @@ const Login = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-4">
+              <form onSubmit={handleLogin} className="space-y-4">
                 <div className="grid gap-1.5">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -35,6 +109,9 @@ const Login = () => {
                     placeholder="name@example.com"
                     type="email"
                     autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
                   />
                 </div>
                 <div className="grid gap-1.5">
@@ -52,13 +129,16 @@ const Login = () => {
                     placeholder="••••••••"
                     type="password"
                     autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
                   />
                 </div>
-              </div>
-              
-              <Button type="submit" className="w-full">
-                Log in
-              </Button>
+                
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Logging in..." : "Log in"}
+                </Button>
+              </form>
               
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -72,11 +152,21 @@ const Login = () => {
               </div>
               
               <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                  onClick={handleGithubLogin}
+                  disabled={isLoading}
+                >
                   <Github className="h-4 w-4" />
                   GitHub
                 </Button>
-                <Button variant="outline" className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                  onClick={handleGoogleLogin}
+                  disabled={isLoading}
+                >
                   <Mail className="h-4 w-4" />
                   Google
                 </Button>
