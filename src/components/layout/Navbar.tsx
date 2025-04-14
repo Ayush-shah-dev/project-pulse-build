@@ -1,7 +1,7 @@
 
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, Menu, X, User, LogOut } from "lucide-react";
+import { Search, Menu, X, User, LogOut, UserCircle, Settings } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,7 +43,7 @@ const Navbar = () => {
         </div>
         
         <div className="hidden md:flex items-center space-x-4">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/projects")}>
             <Search className="h-5 w-5" />
           </Button>
           
@@ -51,7 +51,7 @@ const Navbar = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
-                  <User className="h-4 w-4" />
+                  <UserCircle className="h-4 w-4" />
                   <span>{user.user_metadata?.first_name || 'Account'}</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -60,10 +60,16 @@ const Navbar = () => {
                   <Link to="/dashboard" className="cursor-pointer">Dashboard</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/profile" className="cursor-pointer">Profile</Link>
+                  <Link to="/profile" className="cursor-pointer flex items-center">
+                    <User className="h-4 w-4 mr-2" />
+                    Complete Profile
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/settings" className="cursor-pointer">Settings</Link>
+                  <Link to="/settings" className="cursor-pointer flex items-center">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
@@ -103,7 +109,10 @@ const Navbar = () => {
           {user ? (
             <>
               <Link to="/dashboard" className="text-gray-600 hover:text-gray-900 py-2">Dashboard</Link>
-              <Link to="/profile" className="text-gray-600 hover:text-gray-900 py-2">Profile</Link>
+              <Link to="/profile" className="text-gray-600 hover:text-gray-900 py-2 flex items-center">
+                <User className="h-4 w-4 mr-2" />
+                Complete Profile
+              </Link>
               <Link to="/settings" className="text-gray-600 hover:text-gray-900 py-2">Settings</Link>
               <Button onClick={handleLogout}>Log out</Button>
             </>
