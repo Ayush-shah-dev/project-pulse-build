@@ -21,6 +21,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -29,13 +30,20 @@ const Login = () => {
     
     try {
       setIsLoading(true);
+      setEmailNotConfirmed(false);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message === "Email not confirmed") {
+          setEmailNotConfirmed(true);
+          throw new Error("Your email is not confirmed. Please check your inbox for a verification link.");
+        }
+        throw error;
+      }
 
       toast({
         title: "Logged in successfully",
@@ -48,6 +56,32 @@ const Login = () => {
       toast({
         title: "Login failed",
         description: error.message || "Invalid email or password",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Verification email sent",
+        description: "Please check your inbox for the verification link.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to resend verification",
+        description: error.message,
         variant: "destructive"
       });
     } finally {
@@ -101,6 +135,22 @@ const Login = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {emailNotConfirmed && (
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
+                  <h3 className="text-sm font-medium text-amber-800">Email not verified</h3>
+                  <p className="text-sm text-amber-700 mt-1">
+                    Your email hasn't been verified yet. Please check your inbox for the verification link or 
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-amber-800 font-medium underline ml-1"
+                      onClick={handleResendVerification}
+                      disabled={isLoading}
+                    >
+                      click here to resend the verification email
+                    </Button>.
+                  </p>
+                </div>
+              )}
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="grid gap-1.5">
                   <Label htmlFor="email">Email</Label>
