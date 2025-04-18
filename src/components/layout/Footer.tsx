@@ -9,7 +9,7 @@ const Footer = () => {
           <div>
             <Link to="/" className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue"></div>
-              <span className="font-bold text-xl">CollabHub</span>
+              <span className="font-bold text-xl">CO-brew</span>
             </Link>
             <p className="mt-4 text-gray-600">
               Connect, collaborate, and create amazing projects with like-minded people.
@@ -29,7 +29,7 @@ const Footer = () => {
           <div>
             <h3 className="font-medium text-lg mb-4">Resources</h3>
             <ul className="space-y-2">
-              <li><Link to="/docs" className="text-gray-600 hover:text-gray-900">Documentation</Link></li>
+              <li><Link to="/documentation" className="text-gray-600 hover:text-gray-900">Documentation</Link></li>
               <li><Link to="/guides" className="text-gray-600 hover:text-gray-900">Guides</Link></li>
               <li><Link to="/blog" className="text-gray-600 hover:text-gray-900">Blog</Link></li>
               <li><Link to="/support" className="text-gray-600 hover:text-gray-900">Support</Link></li>
@@ -47,7 +47,7 @@ const Footer = () => {
         </div>
         
         <div className="border-t mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-600">© 2025 CollabHub. All rights reserved.</p>
+          <p className="text-gray-600">© 2025 CO-brew. All rights reserved.</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <a href="#" className="text-gray-600 hover:text-gray-900">
               <span className="sr-only">Twitter</span>

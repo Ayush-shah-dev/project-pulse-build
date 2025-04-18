@@ -7,11 +7,17 @@ const Guides = () => {
   return (
     <Layout>
       <Helmet>
-        <title>Guides | Co-brew - Step-by-step Tutorials and Best Practices</title>
+        <title>Guides | CO-brew - Step-by-step Tutorials and Best Practices</title>
         <meta 
           name="description" 
-          content="Detailed guides and tutorials for Co-brew users. Learn best practices, tips, and tricks for effective collaboration and project management." 
+          content="Detailed guides and tutorials for CO-brew users. Learn best practices, tips, and tricks for effective collaboration and project management." 
         />
+        <meta name="keywords" content="collaborative development, developer guides, step-by-step tutorials, project management, software development, team collaboration" />
+        <meta property="og:title" content="CO-brew Guides & Tutorials" />
+        <meta property="og:description" content="Comprehensive guides and tutorials for getting the most out of CO-brew's collaborative development platform." />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:title" content="CO-brew Guides & Tutorials" />
+        <meta name="twitter:description" content="Comprehensive guides and tutorials for getting the most out of CO-brew's collaborative development platform." />
       </Helmet>
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
@@ -20,9 +26,9 @@ const Guides = () => {
             <h1 className="text-4xl font-bold">Guides</h1>
           </div>
           <div className="prose prose-lg max-w-none">
-            <h2>Co-brew Platform Guides</h2>
+            <h2>CO-brew Platform Guides</h2>
             <p>
-              Our comprehensive guides will help you master Co-brew's features and maximize your team's productivity.
+              Our comprehensive guides will help you master CO-brew's features and maximize your team's productivity.
             </p>
             
             <h3>Popular Guides</h3>

@@ -20,6 +20,9 @@ import Documentation from "./pages/Documentation";
 import Guides from "./pages/Guides";
 import Blog from "./pages/Blog";
 import Support from "./pages/Support";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Cookies from "./pages/Cookies";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +48,9 @@ const App = () => (
               <Route path="/guides" element={<Guides />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/support" element={<Support />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/cookies" element={<Cookies />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

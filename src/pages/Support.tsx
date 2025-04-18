@@ -7,11 +7,17 @@ const Support = () => {
   return (
     <Layout>
       <Helmet>
-        <title>Support | Co-brew - Help and Customer Support</title>
+        <title>Support | CO-brew - Help and Customer Support</title>
         <meta 
           name="description" 
-          content="Get help and support for Co-brew. Find answers to common questions, contact our support team, and resolve issues quickly." 
+          content="Get help and support for CO-brew. Find answers to common questions, contact our support team, and resolve issues quickly." 
         />
+        <meta name="keywords" content="technical support, developer help, troubleshooting, FAQ, customer service, software support" />
+        <meta property="og:title" content="CO-brew Support Center" />
+        <meta property="og:description" content="Get expert help and answers to your questions about the CO-brew collaborative development platform." />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:title" content="CO-brew Support Center" />
+        <meta name="twitter:description" content="Get expert help and answers to your questions about the CO-brew collaborative development platform." />
       </Helmet>
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
@@ -22,7 +28,7 @@ const Support = () => {
           <div className="prose prose-lg max-w-none">
             <h2>How Can We Help?</h2>
             <p>
-              Our support team is here to help you make the most of Co-brew. Find answers to common questions
+              Our support team is here to help you make the most of CO-brew. Find answers to common questions
               or get in touch with our team.
             </p>
             

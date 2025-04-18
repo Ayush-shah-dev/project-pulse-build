@@ -31,7 +31,7 @@ const Navbar = () => {
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue"></div>
-            <span className="font-bold text-xl">CollabHub</span>
+            <span className="font-bold text-xl">CO-brew</span>
           </Link>
           
           <div className="hidden md:flex space-x-6">

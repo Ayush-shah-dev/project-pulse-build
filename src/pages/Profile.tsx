@@ -13,17 +13,74 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { X, Plus, Save } from "lucide-react";
+import { 
+  X, 
+  Plus, 
+  Save, 
+  Briefcase, 
+  Building, 
+  Globe,
+  Github, 
+  Linkedin,
+  UserCircle2 
+} from "lucide-react";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+
+const urlRegex = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
 
 const profileFormSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   title: z.string().min(3, "Professional title must be at least 3 characters"),
   location: z.string().optional(),
+  experience: z.string().optional(),
+  industry: z.string().optional(),
+  education: z.string().optional(),
+  githubUrl: z.string().regex(urlRegex, "Please enter a valid URL").optional().or(z.literal("")),
+  linkedinUrl: z.string().regex(urlRegex, "Please enter a valid URL").optional().or(z.literal("")),
   bio: z.string().min(20, "Bio must be at least 20 characters"),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
+
+const industryOptions = [
+  "Software Development",
+  "Web Development",
+  "Mobile Development",
+  "Data Science",
+  "Machine Learning",
+  "Artificial Intelligence",
+  "DevOps",
+  "Cloud Computing",
+  "Cybersecurity",
+  "UX/UI Design",
+  "Game Development",
+  "Blockchain",
+  "IoT",
+  "Embedded Systems",
+  "Fintech",
+  "Healthtech",
+  "Edtech",
+  "E-commerce",
+  "Digital Marketing",
+  "Other"
+];
+
+const experienceLevels = [
+  "Student",
+  "Entry Level (0-2 years)",
+  "Junior (2-4 years)",
+  "Mid-Level (4-6 years)",
+  "Senior (6-10 years)",
+  "Principal (10+ years)",
+  "Executive Level"
+];
 
 const Profile = () => {
   const { toast } = useToast();
@@ -40,6 +97,11 @@ const Profile = () => {
       lastName: user?.user_metadata?.last_name || "",
       title: "",
       location: "",
+      experience: "",
+      industry: "",
+      education: "",
+      githubUrl: "",
+      linkedinUrl: "",
       bio: "",
     },
   });
@@ -109,85 +171,232 @@ const Profile = () => {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your first name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your last name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Professional Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Full Stack Developer, UX Designer" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. San Francisco, CA" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="bio"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bio</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Tell others about yourself, your experience, and what you're looking to collaborate on"
-                        className="min-h-24"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <Card>
+                <CardContent className="pt-6">
+                  <h2 className="text-xl font-semibold mb-4 flex items-center">
+                    <UserCircle2 className="mr-2 h-5 w-5 text-brand-purple" />
+                    Personal Information
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Your first name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Your last name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
               
               <Card>
                 <CardContent className="pt-6">
-                  <FormLabel className="mb-2 block">Skills</FormLabel>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center">
+                    <Briefcase className="mr-2 h-5 w-5 text-brand-purple" />
+                    Professional Information
+                  </h2>
+                  <div className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Professional Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Full Stack Developer, UX Designer" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="experience"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Experience Level</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select your experience level" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {experienceLevels.map((level) => (
+                                  <SelectItem key={level} value={level}>
+                                    {level}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="industry"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Industry</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select your industry" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {industryOptions.map((industry) => (
+                                  <SelectItem key={industry} value={industry}>
+                                    {industry}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="education"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Education</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. BSc Computer Science, University of Technology" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="pt-6">
+                  <h2 className="text-xl font-semibold mb-4 flex items-center">
+                    <Globe className="mr-2 h-5 w-5 text-brand-purple" />
+                    Location & Contact
+                  </h2>
+                  <div className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Location</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. San Francisco, CA" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="githubUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center">
+                              <Github className="h-4 w-4 mr-1" />
+                              GitHub Profile
+                            </FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://github.com/username" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="linkedinUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center">
+                              <Linkedin className="h-4 w-4 mr-1" />
+                              LinkedIn Profile
+                            </FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://linkedin.com/in/username" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="pt-6">
+                  <h2 className="text-xl font-semibold mb-4 flex items-center">
+                    <Building className="mr-2 h-5 w-5 text-brand-purple" />
+                    About You
+                  </h2>
+                  <FormField
+                    control={form.control}
+                    name="bio"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bio</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Tell others about yourself, your experience, and what you're looking to collaborate on"
+                            className="min-h-24"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="pt-6">
+                  <FormLabel className="text-xl font-semibold mb-4 flex items-center">
+                    <Plus className="mr-2 h-5 w-5 text-brand-purple" />
+                    Skills
+                  </FormLabel>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {skills.map((skill, index) => (
                       <Badge key={index} className="flex items-center gap-1 py-1 px-3">

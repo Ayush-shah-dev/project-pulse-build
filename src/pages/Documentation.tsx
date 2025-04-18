@@ -7,11 +7,17 @@ const Documentation = () => {
   return (
     <Layout>
       <Helmet>
-        <title>Documentation | Co-brew - Collaborative Development Platform</title>
+        <title>Documentation | CO-brew - Collaborative Development Platform</title>
         <meta 
           name="description" 
-          content="Comprehensive documentation for Co-brew. Learn how to collaborate effectively, manage projects, and build amazing applications together." 
+          content="Comprehensive documentation for CO-brew. Learn how to collaborate effectively, manage projects, and build amazing applications together." 
         />
+        <meta name="keywords" content="development documentation, collaboration tools, project management, developer guides, software documentation, CO-brew platform" />
+        <meta property="og:title" content="CO-brew Documentation - Developer Resource Center" />
+        <meta property="og:description" content="Find comprehensive guides, API references, and best practices for using the CO-brew collaborative development platform." />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:title" content="CO-brew Documentation" />
+        <meta name="twitter:description" content="Find comprehensive guides, API references, and best practices for using the CO-brew collaborative development platform." />
       </Helmet>
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
@@ -20,9 +26,9 @@ const Documentation = () => {
             <h1 className="text-4xl font-bold">Documentation</h1>
           </div>
           <div className="prose prose-lg max-w-none">
-            <h2>Getting Started with Co-brew</h2>
+            <h2>Getting Started with CO-brew</h2>
             <p>
-              Welcome to Co-brew's documentation. Here you'll find everything you need to know about using our platform
+              Welcome to CO-brew's documentation. Here you'll find everything you need to know about using our platform
               for collaborative development and project management.
             </p>
             
@@ -36,7 +42,7 @@ const Documentation = () => {
 
             <h3>Core Concepts</h3>
             <p>
-              Learn about the fundamental concepts that make Co-brew powerful for team collaboration
+              Learn about the fundamental concepts that make CO-brew powerful for team collaboration
               and project management.
             </p>
           </div>
