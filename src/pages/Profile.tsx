@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,8 @@ import {
   Globe,
   Github, 
   Linkedin,
-  UserCircle2 
+  UserCircle2,
+  Loader2 
 } from "lucide-react";
 import { 
   Select, 
@@ -69,6 +71,14 @@ const industryOptions = [
   "Edtech",
   "E-commerce",
   "Digital Marketing",
+  "Augmented Reality",
+  "Virtual Reality",
+  "Robotics",
+  "Quantum Computing",
+  "Telecommunications",
+  "Bioinformatics",
+  "Green Tech",
+  "Aerospace",
   "Other"
 ];
 
@@ -87,6 +97,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState("");
 
@@ -106,11 +117,57 @@ const Profile = () => {
     },
   });
 
+  // Fetch existing profile data
   useEffect(() => {
     if (!user) {
       navigate("/login");
+      return;
     }
-  }, [user, navigate]);
+
+    const fetchProfileData = async () => {
+      try {
+        const { data: profileData, error } = await supabase
+          .from('profile_details')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching profile:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load profile data",
+            variant: "destructive",
+          });
+        }
+
+        if (profileData) {
+          form.reset({
+            firstName: profileData.first_name || user?.user_metadata?.first_name || "",
+            lastName: profileData.last_name || user?.user_metadata?.last_name || "",
+            title: profileData.title || "",
+            location: profileData.location || "",
+            experience: profileData.experience || "",
+            industry: profileData.industry || "",
+            education: profileData.education || "",
+            githubUrl: profileData.github_url || "",
+            linkedinUrl: profileData.linkedin_url || "",
+            bio: profileData.bio || "",
+          });
+
+          if (profileData.skills) {
+            setSkills(profileData.skills);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [user, navigate, form, toast]);
 
   const addSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -137,8 +194,28 @@ const Profile = () => {
 
     setIsSubmitting(true);
     try {
-      // This would update the user's profile in a real app
-      console.log("Updating profile:", { ...values, skills });
+      // Update profile in Supabase
+      const { error } = await supabase
+        .from('profile_details')
+        .upsert({
+          id: user.id,
+          first_name: values.firstName,
+          last_name: values.lastName,
+          title: values.title,
+          location: values.location,
+          experience: values.experience,
+          industry: values.industry,
+          education: values.education,
+          github_url: values.githubUrl,
+          linkedin_url: values.linkedinUrl,
+          bio: values.bio,
+          skills: skills,
+        }, { onConflict: 'id' });
+
+      if (error) {
+        console.error('Error updating profile:', error);
+        throw error;
+      }
       
       toast({
         title: "Profile updated",
@@ -159,6 +236,17 @@ const Profile = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto py-12 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-brand-purple" />
+          <span className="ml-2">Loading profile...</span>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -240,6 +328,7 @@ const Profile = () => {
                             <Select 
                               onValueChange={field.onChange} 
                               defaultValue={field.value}
+                              value={field.value}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -268,6 +357,7 @@ const Profile = () => {
                             <Select 
                               onValueChange={field.onChange} 
                               defaultValue={field.value}
+                              value={field.value}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -435,8 +525,17 @@ const Profile = () => {
               
               <div className="pt-4">
                 <Button type="submit" className="w-full md:w-auto" disabled={isSubmitting}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSubmitting ? "Saving..." : "Save Profile"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Profile
+                    </>
+                  )}
                 </Button>
               </div>
             </form>

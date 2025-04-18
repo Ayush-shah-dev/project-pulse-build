@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      profile_details: {
+        Row: {
+          bio: string | null
+          created_at: string | null
+          education: string | null
+          experience: string | null
+          first_name: string | null
+          github_url: string | null
+          id: string
+          industry: string | null
+          last_name: string | null
+          linkedin_url: string | null
+          location: string | null
+          skills: string[] | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string | null
+          education?: string | null
+          experience?: string | null
+          first_name?: string | null
+          github_url?: string | null
+          id: string
+          industry?: string | null
+          last_name?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          skills?: string[] | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string | null
+          education?: string | null
+          experience?: string | null
+          first_name?: string | null
+          github_url?: string | null
+          id?: string
+          industry?: string | null
+          last_name?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          skills?: string[] | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -33,6 +84,60 @@ export type Database = {
           id?: string
           provider?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      project_applications: {
+        Row: {
+          applicant_id: string
+          created_at: string | null
+          id: string
+          message: string | null
+          project_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          applicant_id: string
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          project_id: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          applicant_id?: string
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          project_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      project_chat_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          project_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          project_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          project_id?: string
+          sender_id?: string
         }
         Relationships: []
       }
