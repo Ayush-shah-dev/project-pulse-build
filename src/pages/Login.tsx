@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,11 +12,11 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Github, Mail } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import SocialAuth from "@/components/auth/SocialAuth";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -41,7 +42,10 @@ const Login = () => {
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        }
       });
 
       if (error) {
@@ -95,40 +99,6 @@ const Login = () => {
     }
   };
 
-  const handleGithubLogin = async () => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: "GitHub login failed",
-        description: error.message,
-        variant: "destructive"
-      });
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: "Google login failed",
-        description: error.message,
-        variant: "destructive"
-      });
-      setIsLoading(false);
-    }
-  };
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -137,7 +107,7 @@ const Login = () => {
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl font-bold">Log in to CollabHub</CardTitle>
               <CardDescription>
-                Enter your email and password to access your account
+                Enter your email and password or use a social provider
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -207,26 +177,7 @@ const Login = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                  onClick={handleGithubLogin}
-                  disabled={isLoading}
-                >
-                  <Github className="h-4 w-4" />
-                  GitHub
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                  onClick={handleGoogleLogin}
-                  disabled={isLoading}
-                >
-                  <Mail className="h-4 w-4" />
-                  Google
-                </Button>
-              </div>
+              <SocialAuth />
             </CardContent>
             <CardFooter className="flex justify-center">
               <p className="text-sm text-muted-foreground">

@@ -142,7 +142,7 @@ const Signup = () => {
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
               <CardDescription>
-                Join CollabHub to start finding collaborators and building projects
+                Sign up to CollabHub using email or a social provider
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -230,26 +230,7 @@ const Signup = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2" 
-                  onClick={handleGithubSignup}
-                  disabled={isLoading}
-                >
-                  <Github className="h-4 w-4" />
-                  GitHub
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2" 
-                  onClick={handleGoogleSignup}
-                  disabled={isLoading}
-                >
-                  <Mail className="h-4 w-4" />
-                  Google
-                </Button>
-              </div>
+              <SocialAuth />
             </CardContent>
             <CardFooter className="flex justify-center">
               <p className="text-sm text-muted-foreground">
