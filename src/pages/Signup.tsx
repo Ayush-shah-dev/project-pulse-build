@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,6 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Github, Mail } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -60,7 +60,7 @@ const Signup = () => {
     try {
       setIsLoading(true);
       
-      // Sign up the user
+      // Sign up the user without attempting to create a profile - we'll let the database trigger handle that
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -74,26 +74,43 @@ const Signup = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Account created",
-        description: "Check your email for the confirmation link.",
-      });
-      
-      // Redirect to the dashboard if auto-confirm is enabled
-      // Otherwise the user will need to verify their email first
-      if (data.user && !data.user.identities![0].identity_data.email_verified) {
+      // Check if email verification is required
+      if (data.user && data.user.identities && data.user.identities.length > 0) {
+        const emailVerified = data.user.identities[0].identity_data.email_verified;
+        
+        if (!emailVerified) {
+          toast({
+            title: "Email verification required",
+            description: "Check your email for the confirmation link before logging in.",
+          });
+          navigate("/login");
+        } else {
+          toast({
+            title: "Account created",
+            description: "Your account has been created successfully!",
+          });
+          navigate("/dashboard");
+        }
+      } else {
         toast({
-          title: "Email verification required",
-          description: "Check your email for the confirmation link before logging in.",
+          title: "Account created",
+          description: "Your account has been created. Please check your email for verification.",
         });
         navigate("/login");
-      } else {
-        navigate("/dashboard");
       }
     } catch (error: any) {
+      console.error("Signup error:", error);
+      
+      let errorMessage = error.message || "An error occurred during signup";
+      
+      // Provide a more user-friendly message for the database error
+      if (errorMessage.includes("Database error") || error.code === "unexpected_failure") {
+        errorMessage = "Unable to create your account at this time. Please try again later or contact support.";
+      }
+      
       toast({
         title: "Signup failed",
-        description: error.message || "An error occurred during signup",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
