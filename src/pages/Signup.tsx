@@ -17,6 +17,7 @@ import Layout from "@/components/layout/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import SocialAuth from "@/components/auth/SocialAuth";
 
 const Signup = () => {
   const [firstName, setFirstName] = useState("");

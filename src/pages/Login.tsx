@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -43,9 +42,6 @@ const Login = () => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        }
       });
 
       if (error) {
