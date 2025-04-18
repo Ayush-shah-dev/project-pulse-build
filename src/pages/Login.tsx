@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -55,7 +54,7 @@ const Login = () => {
 
       toast({
         title: "Logged in successfully",
-        description: "Welcome back to CollabHub!",
+        description: "Welcome back to Co-brew!",
       });
       
       navigate("/dashboard");
@@ -103,7 +102,7 @@ const Login = () => {
         <div className="max-w-md mx-auto">
           <Card>
             <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold">Log in to CollabHub</CardTitle>
+              <CardTitle className="text-2xl font-bold">Log in to Co-brew</CardTitle>
               <CardDescription>
                 Enter your email and password or use a social provider
               </CardDescription>
