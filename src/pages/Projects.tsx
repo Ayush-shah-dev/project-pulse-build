@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Plus, SlidersHorizontal, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+interface ProjectMember {
+  id: string;
+  name: string;
+  avatar?: string;
+}
+
 interface Project {
   id: string;
   title: string;
@@ -21,12 +28,9 @@ interface Project {
   category: string;
   created_at: string;
   updated_at: string;
-}
-
-interface ProjectMember {
-  id: string;
-  name: string;
-  avatar?: string;
+  // Extended properties for UI
+  members?: ProjectMember[];
+  matchScore?: number;
 }
 
 const Projects = () => {
@@ -52,6 +56,7 @@ const Projects = () => {
             stage, 
             roles_needed,
             updated_at,
+            created_at,
             creator_id,
             category
           `)
@@ -255,7 +260,7 @@ const Projects = () => {
                 description={project.description}
                 tags={project.tags}
                 stage={project.stage}
-                members={project.members}
+                members={project.members || []}
                 rolesNeeded={project.roles_needed}
                 matchScore={project.matchScore}
                 updatedAt={project.updated_at}
