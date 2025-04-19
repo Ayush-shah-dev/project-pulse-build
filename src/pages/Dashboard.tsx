@@ -1,7 +1,7 @@
-
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,9 @@ import { AlertCircle, Plus, Search, User, FileEdit, UserCircle, Star, Calendar, 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [profileData, setProfileData] = useState(null);
+  const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -20,12 +23,62 @@ const Dashboard = () => {
     }
   }, [user, isLoading, navigate]);
 
+  // Fetch profile data and calculate completion percentage
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!user) return;
+
+      try {
+        setProfileLoading(true);
+        const { data, error } = await supabase
+          .from('profile_details')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching profile:', error);
+        }
+
+        setProfileData(data);
+        
+        // Calculate profile completion percentage
+        if (data) {
+          const fieldsToCheck = [
+            'first_name', 'last_name', 'title', 'bio', 
+            'location', 'experience', 'industry', 'education'
+          ];
+          
+          const filledFields = fieldsToCheck.filter(field => 
+            data[field] && data[field].trim().length > 0
+          );
+          
+          const skillsComplete = data.skills && data.skills.length > 0 ? 1 : 0;
+          const linksComplete = 
+            (data.github_url && data.github_url.trim().length > 0) || 
+            (data.linkedin_url && data.linkedin_url.trim().length > 0) ? 1 : 0;
+          
+          const totalFieldsToComplete = fieldsToCheck.length + 2; // +2 for skills and links
+          const completedFields = filledFields.length + skillsComplete + linksComplete;
+          
+          const percentage = Math.round((completedFields / totalFieldsToComplete) * 100);
+          setProfileCompletionPercentage(percentage);
+        }
+      } catch (error) {
+        console.error('Error in profile data fetch:', error);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [user]);
+
   const isProfileComplete = () => {
-    // In a real app, this would check if all required profile fields are filled
-    return false; // Simulate incomplete profile
+    return profileCompletionPercentage < 70;
   };
 
-  if (isLoading) {
+  if (isLoading || profileLoading) {
     return (
       <Layout>
         <div className="container mx-auto py-12">
@@ -39,18 +92,18 @@ const Dashboard = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold">Welcome, {user?.user_metadata?.first_name || 'User'}!</h1>
+          <h1 className="text-3xl font-bold">Welcome, {user?.user_metadata?.first_name || profileData?.first_name || 'User'}!</h1>
           <p className="text-gray-600">Manage your projects and find collaborators</p>
         </header>
 
-        {!isProfileComplete() && (
+        {isProfileComplete() && (
           <Card className="mb-8 border-yellow-300 bg-yellow-50">
             <CardContent className="flex items-start gap-4 p-6">
               <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
               <div>
                 <h3 className="font-medium text-yellow-800">Complete your profile</h3>
                 <p className="text-yellow-700 text-sm mt-1">
-                  Your profile is incomplete. Add more information to help others find you 
+                  Your profile is {profileCompletionPercentage}% complete. Add more information to help others find you 
                   and increase your chances of finding collaborators.
                 </p>
                 <Button 
@@ -118,10 +171,13 @@ const Dashboard = () => {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span>Profile</span>
-                      <span className="text-sm">30%</span>
+                      <span className="text-sm">{profileCompletionPercentage}%</span>
                     </div>
                     <div className="h-2 bg-gray-200 rounded-full">
-                      <div className="h-2 bg-primary rounded-full w-[30%]"></div>
+                      <div 
+                        className="h-2 bg-primary rounded-full" 
+                        style={{ width: `${profileCompletionPercentage}%` }}
+                      ></div>
                     </div>
                     <Button 
                       size="sm" 

@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { X, Plus, Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
@@ -28,6 +30,10 @@ const CreateProject = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const [rolesNeeded, setRolesNeeded] = useState<string[]>([]);
+  const [newRole, setNewRole] = useState("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -39,6 +45,39 @@ const CreateProject = () => {
     },
   });
 
+  const addTag = () => {
+    if (newTag.trim() && !tags.includes(newTag.trim())) {
+      setTags([...tags, newTag.trim()]);
+      setNewTag("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const addRole = () => {
+    if (newRole.trim() && !rolesNeeded.includes(newRole.trim())) {
+      setRolesNeeded([...rolesNeeded, newRole.trim()]);
+      setNewRole("");
+    }
+  };
+
+  const removeRole = (roleToRemove: string) => {
+    setRolesNeeded(rolesNeeded.filter(role => role !== roleToRemove));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, type: 'tag' | 'role') => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (type === 'tag') {
+        addTag();
+      } else {
+        addRole();
+      }
+    }
+  };
+
   const onSubmit = async (values: FormValues) => {
     if (!user) {
       toast({
@@ -49,12 +88,34 @@ const CreateProject = () => {
       return;
     }
 
+    if (tags.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please add at least one tag",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Demo implementation - in a real app, this would insert into a Supabase table
-      console.log("Creating project:", values);
+      // Insert project into Supabase
+      const { data, error } = await supabase
+        .from('projects')
+        .insert({
+          title: values.title,
+          description: values.description,
+          category: values.category,
+          stage: values.stage,
+          tags: tags,
+          roles_needed: rolesNeeded,
+          creator_id: user.id,
+          updated_at: new Date().toISOString()
+        })
+        .select();
+
+      if (error) throw error;
       
-      // Simulate success - in production, this would use real data
       toast({
         title: "Success!",
         description: "Your project has been created.",
@@ -169,9 +230,86 @@ const CreateProject = () => {
                 />
               </div>
               
+              <div>
+                <FormLabel>Tags</FormLabel>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {tags.map((tag, index) => (
+                    <Badge key={index} className="flex items-center gap-1 py-1 px-3">
+                      {tag}
+                      <button 
+                        type="button" 
+                        onClick={() => removeTag(tag)}
+                        className="text-muted rounded-full hover:bg-accent p-1"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, 'tag')}
+                    placeholder="Add a tag (e.g. AI, Mobile, Education)"
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={addTag}
+                    disabled={!newTag.trim()}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add
+                  </Button>
+                </div>
+              </div>
+              
+              <div>
+                <FormLabel>Roles Needed</FormLabel>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {rolesNeeded.map((role, index) => (
+                    <Badge key={index} variant="outline" className="flex items-center gap-1 py-1 px-3">
+                      {role}
+                      <button 
+                        type="button" 
+                        onClick={() => removeRole(role)}
+                        className="text-muted rounded-full hover:bg-accent p-1"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, 'role')}
+                    placeholder="Add a role (e.g. Developer, Designer, Marketer)"
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={addRole}
+                    disabled={!newRole.trim()}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add
+                  </Button>
+                </div>
+              </div>
+              
               <div className="pt-4">
                 <Button type="submit" className="w-full md:w-auto" disabled={isSubmitting}>
-                  {isSubmitting ? "Creating..." : "Create Project"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : "Create Project"}
                 </Button>
               </div>
             </form>

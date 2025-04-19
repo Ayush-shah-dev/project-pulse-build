@@ -1,114 +1,125 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import ProjectCard from "@/components/project/ProjectCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, SlidersHorizontal } from "lucide-react";
+import { Search, Plus, SlidersHorizontal, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data for projects
-const mockProjects = [
-  {
-    id: "proj1",
-    title: "EcoTrack - Environmental Monitoring Platform",
-    description: "A platform for tracking and visualizing environmental data from DIY sensors to help communities monitor local pollution levels and advocate for change.",
-    tags: ["Climate Tech", "IoT", "Data Visualization", "React", "Python"],
-    stage: "prototype" as const,
-    members: [
-      { id: "user1", name: "Emily Chen", avatar: "https://randomuser.me/api/portraits/women/12.jpg" },
-      { id: "user3", name: "Sarah Johnson", avatar: "https://randomuser.me/api/portraits/women/22.jpg" },
-      { id: "user4", name: "Michael Rodriguez", avatar: "https://randomuser.me/api/portraits/men/45.jpg" }
-    ],
-    rolesNeeded: ["Mobile Developer", "UX Designer", "Environmental Scientist"],
-    matchScore: 92,
-    updatedAt: "2025-03-29"
-  },
-  {
-    id: "proj2",
-    title: "Linguify - AI Language Learning Assistant",
-    description: "An AI-powered language learning platform that creates personalized learning paths and realistic conversation practice through natural language processing.",
-    tags: ["AI", "Education", "NLP", "Mobile", "React Native"],
-    stage: "mvp" as const,
-    members: [
-      { id: "user2", name: "David Kim", avatar: "https://randomuser.me/api/portraits/men/32.jpg" },
-      { id: "user5", name: "Jessica Lee", avatar: "https://randomuser.me/api/portraits/women/45.jpg" }
-    ],
-    rolesNeeded: ["Machine Learning Engineer", "Content Creator", "Marketing"],
-    matchScore: 85,
-    updatedAt: "2025-04-02"
-  },
-  {
-    id: "proj3",
-    title: "Freelance Hub - Project Management for Independent Workers",
-    description: "A comprehensive tool for freelancers to manage clients, track time, send invoices, and handle taxes - all in one platform.",
-    tags: ["SaaS", "Productivity", "Fintech", "Vue.js", "Node.js"],
-    stage: "idea" as const,
-    members: [
-      { id: "user6", name: "Thomas Wright", avatar: "https://randomuser.me/api/portraits/men/67.jpg" }
-    ],
-    rolesNeeded: ["Full Stack Developer", "UX Designer", "Financial Expert", "Product Manager"],
-    matchScore: 79,
-    updatedAt: "2025-04-08"
-  },
-  {
-    id: "proj4",
-    title: "MentalHealth.ai - Accessible Therapy Tools",
-    description: "An open-source platform providing evidence-based mental health tools and resources, with AI guidance for personalized self-help strategies.",
-    tags: ["Healthcare", "AI", "Open Source", "Social Impact", "React"],
-    stage: "prototype" as const,
-    members: [
-      { id: "user1", name: "Emily Chen", avatar: "https://randomuser.me/api/portraits/women/12.jpg" },
-      { id: "user4", name: "Michael Rodriguez", avatar: "https://randomuser.me/api/portraits/men/45.jpg" },
-      { id: "user5", name: "Jessica Lee", avatar: "https://randomuser.me/api/portraits/women/45.jpg" },
-      { id: "user3", name: "Sarah Johnson", avatar: "https://randomuser.me/api/portraits/women/22.jpg" }
-    ],
-    rolesNeeded: ["ML Engineer", "Mental Health Professional", "Content Writer"],
-    matchScore: 88,
-    updatedAt: "2025-03-26"
-  },
-  {
-    id: "proj5",
-    title: "LocalEats - Support Small Food Businesses",
-    description: "A platform connecting consumers with local, independent food businesses for ordering, delivery, and discovery - helping small businesses compete with big delivery apps.",
-    tags: ["Marketplace", "Food Tech", "Mobile", "Flutter", "Firebase"],
-    stage: "mvp" as const,
-    members: [
-      { id: "user2", name: "David Kim", avatar: "https://randomuser.me/api/portraits/men/32.jpg" },
-      { id: "user6", name: "Thomas Wright", avatar: "https://randomuser.me/api/portraits/men/67.jpg" }
-    ],
-    rolesNeeded: ["Mobile Developer", "Growth Hacker", "UI Designer"],
-    matchScore: 76,
-    updatedAt: "2025-04-05"
-  },
-  {
-    id: "proj6",
-    title: "CodeMentor - Peer Programming Learning Platform",
-    description: "A platform that matches coding mentors with learners for live pair programming sessions, knowledge sharing, and project collaboration.",
-    tags: ["Education", "Dev Tools", "Community", "JavaScript", "WebRTC"],
-    stage: "launched" as const,
-    members: [
-      { id: "user1", name: "Emily Chen", avatar: "https://randomuser.me/api/portraits/women/12.jpg" },
-      { id: "user3", name: "Sarah Johnson", avatar: "https://randomuser.me/api/portraits/women/22.jpg" },
-      { id: "user5", name: "Jessica Lee", avatar: "https://randomuser.me/api/portraits/women/45.jpg" }
-    ],
-    rolesNeeded: ["Marketing Specialist", "Community Manager"],
-    matchScore: 82,
-    updatedAt: "2025-03-21"
-  }
-];
+interface ProjectMember {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  tags: string[];
+  stage: "idea" | "prototype" | "mvp" | "launched";
+  members: ProjectMember[];
+  rolesNeeded: string[];
+  matchScore: number;
+  updatedAt: string;
+}
 
 const Projects = () => {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStage, setSelectedStage] = useState<string>("all");
   const [filterExpanded, setFilterExpanded] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredProjects = mockProjects
-    .filter(project => 
-      selectedStage === "all" || project.stage === selectedStage
-    );
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch projects from Supabase
+        const { data: projectsData, error } = await supabase
+          .from('projects')
+          .select(`
+            id, 
+            title, 
+            description, 
+            tags, 
+            stage, 
+            roles_needed,
+            updated_at,
+            creator_id
+          `)
+          .order('updated_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        if (projectsData) {
+          // For each project, fetch creator profile
+          const projectsWithMembers = await Promise.all(
+            projectsData.map(async (project) => {
+              // Fetch creator profile
+              const { data: profileData } = await supabase
+                .from('profile_details')
+                .select('first_name, last_name, id')
+                .eq('id', project.creator_id)
+                .single();
+
+              // Generate a random match score for demo purposes
+              const matchScore = Math.floor(Math.random() * 30) + 70;
+              
+              return {
+                id: project.id,
+                title: project.title,
+                description: project.description,
+                tags: project.tags || [],
+                stage: project.stage,
+                members: profileData ? [{
+                  id: profileData.id,
+                  name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Anonymous User',
+                  avatar: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 100)}.jpg`
+                }] : [],
+                rolesNeeded: project.roles_needed || [],
+                matchScore: matchScore,
+                updatedAt: project.updated_at
+              };
+            })
+          );
+
+          setProjects(projectsWithMembers);
+        }
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load projects',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, [toast]);
+
+  // Filter projects based on search query and selected stage
+  const filteredProjects = projects.filter(project => {
+    const matchesStage = selectedStage === "all" || project.stage === selectedStage;
+    const matchesSearch = searchQuery === "" || 
+      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    return matchesStage && matchesSearch;
+  });
 
   return (
     <Layout>
@@ -239,22 +250,44 @@ const Projects = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredProjects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              id={project.id}
-              title={project.title}
-              description={project.description}
-              tags={project.tags}
-              stage={project.stage}
-              members={project.members}
-              rolesNeeded={project.rolesNeeded}
-              matchScore={project.matchScore}
-              updatedAt={project.updatedAt}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Loading projects...</span>
+          </div>
+        ) : filteredProjects.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {filteredProjects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                id={project.id}
+                title={project.title}
+                description={project.description}
+                tags={project.tags}
+                stage={project.stage}
+                members={project.members}
+                rolesNeeded={project.rolesNeeded}
+                matchScore={project.matchScore}
+                updatedAt={project.updatedAt}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-muted/20 rounded-lg">
+            <h3 className="text-xl font-medium mb-2">No projects found</h3>
+            <p className="text-muted-foreground mb-6">
+              {searchQuery || selectedStage !== "all" 
+                ? "No projects match your search criteria. Try adjusting your filters."
+                : "No projects have been created yet. Be the first to share your idea!"}
+            </p>
+            <Link to="/projects/create">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Project
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </Layout>
   );
