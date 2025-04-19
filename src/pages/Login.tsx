@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,12 +17,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import SocialAuth from "@/components/auth/SocialAuth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -38,6 +42,9 @@ const Login = () => {
     try {
       setIsLoading(true);
       setEmailNotConfirmed(false);
+      setLoginError(null);
+      
+      console.log("Attempting login for:", email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -45,6 +52,7 @@ const Login = () => {
       });
 
       if (error) {
+        console.error("Login error:", error);
         if (error.message === "Email not confirmed") {
           setEmailNotConfirmed(true);
           throw new Error("Your email is not confirmed. Please check your inbox for a verification link.");
@@ -52,14 +60,18 @@ const Login = () => {
         throw error;
       }
 
+      console.log("Login successful:", data);
+      
       toast({
         title: "Logged in successfully",
-        description: "Welcome back to Co-brew!",
+        description: "Welcome back to CO-brew!",
       });
       
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
+      setLoginError(error.message || "Invalid email or password");
+      
       toast({
         title: "Login failed",
         description: error.message || "Invalid email or password",
@@ -108,6 +120,14 @@ const Login = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {loginError && !emailNotConfirmed && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Login Failed</AlertTitle>
+                  <AlertDescription>{loginError}</AlertDescription>
+                </Alert>
+              )}
+            
               {emailNotConfirmed && (
                 <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
                   <h3 className="text-sm font-medium text-amber-800">Email not verified</h3>
@@ -159,7 +179,14 @@ const Login = () => {
                 </div>
                 
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Logging in..." : "Log in"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Logging in...
+                    </>
+                  ) : (
+                    "Log in"
+                  )}
                 </Button>
               </form>
               

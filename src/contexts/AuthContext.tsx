@@ -30,6 +30,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    console.log("AuthProvider initialized");
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -54,10 +56,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const signOut = async () => {
+    console.log("Signing out...");
     await supabase.auth.signOut();
   };
 
   const refreshSession = async () => {
+    console.log("Refreshing session...");
     const { data } = await supabase.auth.refreshSession();
     setSession(data.session);
     setUser(data.session?.user ?? null);

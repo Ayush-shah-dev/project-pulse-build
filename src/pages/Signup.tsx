@@ -19,7 +19,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import SocialAuth from "@/components/auth/SocialAuth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const Signup = () => {
   const [firstName, setFirstName] = useState("");
@@ -64,21 +64,7 @@ const Signup = () => {
     try {
       setIsLoading(true);
       
-      // Check if email already exists
-      const { data: existingUsers, error: emailCheckError } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (emailCheckError) {
-        console.error("Email check error:", emailCheckError);
-        // Continue with signup as this might be a permission issue
-      } else if (existingUsers) {
-        setSignupError("This email is already registered. Please log in or use a different email.");
-        setIsLoading(false);
-        return;
-      }
+      console.log("Starting signup process...");
       
       // Sign up the user with metadata for profile creation
       const { data, error } = await supabase.auth.signUp({
@@ -98,20 +84,25 @@ const Signup = () => {
         throw error;
       }
 
+      console.log("Signup response:", data);
+
       // Check for email confirmation requirements
       if (data.user && data.session) {
+        console.log("User created with session, redirecting to dashboard");
         toast({
           title: "Account created successfully",
-          description: "Welcome to CollabHub! You are now logged in.",
+          description: "Welcome to CO-brew! You are now logged in.",
         });
         navigate("/dashboard");
       } else if (data.user) {
+        console.log("User created without session, email confirmation required");
         toast({
           title: "Account created",
           description: "Please check your email for verification instructions.",
         });
         navigate("/login");
       } else {
+        console.error("No user returned from signup");
         throw new Error("Failed to create account");
       }
     } catch (error: any) {
@@ -121,10 +112,15 @@ const Signup = () => {
       
       // Check for specific error messages
       if (error.message) {
-        if (error.message.includes("Email already registered")) {
+        if (error.message.includes("User already registered")) {
+          errorMessage = "This email is already registered. Please log in instead.";
+        } else if (error.message.includes("Email already registered")) {
           errorMessage = "This email is already registered. Please log in instead.";
         } else if (error.message.includes("password")) {
           errorMessage = "Password must be at least 8 characters with 1 uppercase, 1 number and 1 special character.";
+        } else {
+          // Include actual error for debugging
+          errorMessage = `Error: ${error.message}`;
         }
       }
       
@@ -142,7 +138,7 @@ const Signup = () => {
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
               <CardDescription>
-                Sign up to CollabHub using email or a social provider
+                Sign up to CO-brew using email or a social provider
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -223,7 +219,14 @@ const Signup = () => {
                 </div>
                 
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Create account"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    "Create account"
+                  )}
                 </Button>
               </form>
               
