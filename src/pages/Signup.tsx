@@ -18,6 +18,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import SocialAuth from "@/components/auth/SocialAuth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const Signup = () => {
   const [firstName, setFirstName] = useState("");
@@ -26,6 +28,7 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [signupError, setSignupError] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -38,6 +41,7 @@ const Signup = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSignupError(null);
     
     if (!agreedToTerms) {
       toast({
@@ -60,7 +64,7 @@ const Signup = () => {
     try {
       setIsLoading(true);
       
-      // Sign up the user without attempting to create a profile - we'll let the database trigger handle that
+      // Sign up the user with metadata for profile creation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -75,22 +79,17 @@ const Signup = () => {
       if (error) throw error;
 
       // Check if email verification is required
+      if (data.user && !data.user.identities?.length) {
+        setSignupError("This email is already registered. Please log in or use a different email.");
+        return;
+      }
+
       if (data.user && data.user.identities && data.user.identities.length > 0) {
-        const emailVerified = data.user.identities[0].identity_data.email_verified;
-        
-        if (!emailVerified) {
-          toast({
-            title: "Email verification required",
-            description: "Check your email for the confirmation link before logging in.",
-          });
-          navigate("/login");
-        } else {
-          toast({
-            title: "Account created",
-            description: "Your account has been created successfully!",
-          });
-          navigate("/dashboard");
-        }
+        toast({
+          title: "Account created",
+          description: "Your account has been created. Please check your email for verification.",
+        });
+        navigate("/login");
       } else {
         toast({
           title: "Account created",
@@ -103,51 +102,13 @@ const Signup = () => {
       
       let errorMessage = error.message || "An error occurred during signup";
       
-      // Provide a more user-friendly message for the database error
+      // Provide a more user-friendly message for common errors
       if (errorMessage.includes("Database error") || error.code === "unexpected_failure") {
         errorMessage = "Unable to create your account at this time. Please try again later or contact support.";
       }
       
-      toast({
-        title: "Signup failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      setSignupError(errorMessage);
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGithubSignup = async () => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: "GitHub login failed",
-        description: error.message,
-        variant: "destructive"
-      });
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSignup = async () => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: "Google login failed",
-        description: error.message,
-        variant: "destructive"
-      });
       setIsLoading(false);
     }
   };
@@ -164,6 +125,14 @@ const Signup = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {signupError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{signupError}</AlertDescription>
+                </Alert>
+              )}
+              
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-1.5">
