@@ -17,8 +17,8 @@ interface ProjectCardProps {
   title: string;
   description: string;
   tags: string[];
-  stage: "idea" | "prototype" | "mvp" | "launched";
-  members: ProjectMember[];
+  stage: string; // Changed from specific union type to string
+  members?: ProjectMember[]; // Made optional with ?
   rolesNeeded?: string[];
   matchScore?: number;
   updatedAt: string;
@@ -30,13 +30,15 @@ const ProjectCard = ({
   description,
   tags,
   stage,
-  members,
+  members = [], // Default to empty array if undefined
   rolesNeeded,
   matchScore,
   updatedAt
 }: ProjectCardProps) => {
   const getStageColor = () => {
-    switch (stage) {
+    // Convert stage to lowercase for case-insensitive comparison
+    const normalizedStage = stage.toLowerCase();
+    switch (normalizedStage) {
       case "idea":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
       case "prototype":
@@ -144,3 +146,4 @@ const ProjectCard = ({
 };
 
 export default ProjectCard;
+

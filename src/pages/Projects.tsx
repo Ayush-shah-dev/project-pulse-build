@@ -22,7 +22,7 @@ interface Project {
   title: string;
   description: string;
   tags: string[];
-  stage: "idea" | "prototype" | "mvp" | "launched";
+  stage: string; // Changed from specific union type to string to match database
   creator_id: string;
   roles_needed: string[];
   category: string;
@@ -82,10 +82,10 @@ const Projects = () => {
                 members: profileData ? [{
                   id: profileData.id,
                   name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Anonymous User',
-                  avatar: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 100)}.jpg`
+                  avatar: `https://randomuser.me/api/portraits//${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 100)}.jpg`
                 }] : [],
                 matchScore: matchScore,
-              };
+              } as Project; // Explicitly cast to Project type
             })
           );
 
@@ -289,3 +289,4 @@ const Projects = () => {
 };
 
 export default Projects;
+
