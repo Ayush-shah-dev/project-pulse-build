@@ -64,6 +64,22 @@ const Signup = () => {
     try {
       setIsLoading(true);
       
+      // Check if email already exists
+      const { data: existingUsers, error: emailCheckError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (emailCheckError) {
+        console.error("Email check error:", emailCheckError);
+        // Continue with signup as this might be a permission issue
+      } else if (existingUsers) {
+        setSignupError("This email is already registered. Please log in or use a different email.");
+        setIsLoading(false);
+        return;
+      }
+      
       // Sign up the user with metadata for profile creation
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -72,39 +88,44 @@ const Signup = () => {
           data: {
             first_name: firstName,
             last_name: lastName,
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`
         }
       });
 
-      if (error) throw error;
-
-      // Check if email verification is required
-      if (data.user && !data.user.identities?.length) {
-        setSignupError("This email is already registered. Please log in or use a different email.");
-        return;
+      if (error) {
+        console.error("Signup error details:", error);
+        throw error;
       }
 
-      if (data.user && data.user.identities && data.user.identities.length > 0) {
+      // Check for email confirmation requirements
+      if (data.user && data.session) {
+        toast({
+          title: "Account created successfully",
+          description: "Welcome to CollabHub! You are now logged in.",
+        });
+        navigate("/dashboard");
+      } else if (data.user) {
         toast({
           title: "Account created",
-          description: "Your account has been created. Please check your email for verification.",
+          description: "Please check your email for verification instructions.",
         });
         navigate("/login");
       } else {
-        toast({
-          title: "Account created",
-          description: "Your account has been created. Please check your email for verification.",
-        });
-        navigate("/login");
+        throw new Error("Failed to create account");
       }
     } catch (error: any) {
       console.error("Signup error:", error);
       
-      let errorMessage = error.message || "An error occurred during signup";
+      let errorMessage = "Unable to create your account at this time. Please try again later or contact support.";
       
-      // Provide a more user-friendly message for common errors
-      if (errorMessage.includes("Database error") || error.code === "unexpected_failure") {
-        errorMessage = "Unable to create your account at this time. Please try again later or contact support.";
+      // Check for specific error messages
+      if (error.message) {
+        if (error.message.includes("Email already registered")) {
+          errorMessage = "This email is already registered. Please log in instead.";
+        } else if (error.message.includes("password")) {
+          errorMessage = "Password must be at least 8 characters with 1 uppercase, 1 number and 1 special character.";
+        }
       }
       
       setSignupError(errorMessage);
