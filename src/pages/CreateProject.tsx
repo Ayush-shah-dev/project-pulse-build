@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -110,6 +109,7 @@ const CreateProject = () => {
           tags: tags,
           roles_needed: rolesNeeded,
           creator_id: user.id,
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .select();

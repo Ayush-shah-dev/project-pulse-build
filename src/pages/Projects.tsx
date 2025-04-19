@@ -1,5 +1,6 @@
-
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/layout/Layout";
 import ProjectCard from "@/components/project/ProjectCard";
 import { Input } from "@/components/ui/input";
@@ -8,14 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, SlidersHorizontal, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
-interface ProjectMember {
-  id: string;
-  name: string;
-  avatar: string;
-}
 
 interface Project {
   id: string;
@@ -23,10 +16,17 @@ interface Project {
   description: string;
   tags: string[];
   stage: "idea" | "prototype" | "mvp" | "launched";
-  members: ProjectMember[];
-  rolesNeeded: string[];
-  matchScore: number;
-  updatedAt: string;
+  creator_id: string;
+  roles_needed: string[];
+  category: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ProjectMember {
+  id: string;
+  name: string;
+  avatar?: string;
 }
 
 const Projects = () => {
@@ -42,7 +42,6 @@ const Projects = () => {
       try {
         setIsLoading(true);
         
-        // Fetch projects from Supabase
         const { data: projectsData, error } = await supabase
           .from('projects')
           .select(`
@@ -53,7 +52,8 @@ const Projects = () => {
             stage, 
             roles_needed,
             updated_at,
-            creator_id
+            creator_id,
+            category
           `)
           .order('updated_at', { ascending: false });
 
@@ -62,33 +62,24 @@ const Projects = () => {
         }
 
         if (projectsData) {
-          // For each project, fetch creator profile
           const projectsWithMembers = await Promise.all(
             projectsData.map(async (project) => {
-              // Fetch creator profile
               const { data: profileData } = await supabase
                 .from('profile_details')
                 .select('first_name, last_name, id')
                 .eq('id', project.creator_id)
                 .single();
 
-              // Generate a random match score for demo purposes
               const matchScore = Math.floor(Math.random() * 30) + 70;
               
               return {
-                id: project.id,
-                title: project.title,
-                description: project.description,
-                tags: project.tags || [],
-                stage: project.stage,
+                ...project,
                 members: profileData ? [{
                   id: profileData.id,
                   name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Anonymous User',
                   avatar: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 100)}.jpg`
                 }] : [],
-                rolesNeeded: project.roles_needed || [],
                 matchScore: matchScore,
-                updatedAt: project.updated_at
               };
             })
           );
@@ -110,7 +101,6 @@ const Projects = () => {
     fetchProjects();
   }, [toast]);
 
-  // Filter projects based on search query and selected stage
   const filteredProjects = projects.filter(project => {
     const matchesStage = selectedStage === "all" || project.stage === selectedStage;
     const matchesSearch = searchQuery === "" || 
@@ -266,9 +256,9 @@ const Projects = () => {
                 tags={project.tags}
                 stage={project.stage}
                 members={project.members}
-                rolesNeeded={project.rolesNeeded}
+                rolesNeeded={project.roles_needed}
                 matchScore={project.matchScore}
-                updatedAt={project.updatedAt}
+                updatedAt={project.updated_at}
               />
             ))}
           </div>
