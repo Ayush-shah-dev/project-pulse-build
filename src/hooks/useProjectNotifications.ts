@@ -40,7 +40,7 @@ export function useProjectNotifications(userId: string) {
     
     try {
       // Get all projects created by this user
-      const { data: projects, error: projectsError } = await supabase
+      const { data: userProjects, error: projectsError } = await supabase
         .from("projects")
         .select("id, title")
         .eq("creator_id", userId);
@@ -50,76 +50,79 @@ export function useProjectNotifications(userId: string) {
         throw projectsError;
       }
 
-      console.log(`Found ${projects?.length || 0} projects for this user:`, projects);
+      console.log(`Found ${userProjects?.length || 0} projects for this user:`, userProjects);
 
-      if (projects && projects.length > 0) {
-        const projectIds = projects.map((project) => project.id);
-        console.log("Project IDs to check for applications:", projectIds);
-
-        // Get applications for all user's projects with status "pending"
-        const { data: appData, error } = await supabase
-          .from("project_applications")
-          .select(`
-            id, 
-            project_id, 
-            applicant_id, 
-            message, 
-            status, 
-            created_at,
-            updated_at
-          `)
-          .in("project_id", projectIds)
-          .eq("status", "pending");
-
-        if (error) {
-          console.error("Error fetching project applications:", error);
-          throw error;
-        }
-
-        console.log(`Found ${appData?.length || 0} pending applications:`, appData);
-        
-        if (appData && appData.length > 0) {
-          // Now we need to fetch project titles and applicant details separately
-          const enhancedApplications: ProjectApplication[] = [];
-          
-          for (const app of appData) {
-            // Get the project title
-            const { data: projectData } = await supabase
-              .from("projects")
-              .select("title")
-              .eq("id", app.project_id)
-              .single();
-              
-            // Get the applicant details
-            const { data: applicantData } = await supabase
-              .from("profile_details")
-              .select("id, first_name, last_name")
-              .eq("id", app.applicant_id)
-              .single();
-              
-            enhancedApplications.push({
-              ...app,
-              project: {
-                title: projectData?.title || "Unknown Project"
-              },
-              applicant: {
-                id: app.applicant_id,
-                first_name: applicantData?.first_name || null,
-                last_name: applicantData?.last_name || null
-              }
-            });
-          }
-          
-          console.log("Enhanced applications:", enhancedApplications);
-          setApplications(enhancedApplications);
-        } else {
-          console.log("No pending applications found");
-          setApplications([]);
-        }
-      } else {
+      if (!userProjects || userProjects.length === 0) {
         console.log("User has no projects");
         setApplications([]);
+        setIsLoading(false);
+        return;
       }
+
+      // Get project IDs
+      const projectIds = userProjects.map(project => project.id);
+      console.log("Project IDs to check for applications:", projectIds);
+
+      // Get applications for all user's projects with status "pending"
+      const { data: pendingApplications, error: applicationsError } = await supabase
+        .from("project_applications")
+        .select("*")
+        .in("project_id", projectIds)
+        .eq("status", "pending");
+
+      if (applicationsError) {
+        console.error("Error fetching project applications:", applicationsError);
+        throw applicationsError;
+      }
+
+      console.log(`Found ${pendingApplications?.length || 0} pending applications:`, pendingApplications);
+      
+      if (!pendingApplications || pendingApplications.length === 0) {
+        setApplications([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Create a map of project IDs to project titles for efficient lookup
+      const projectMap = Object.fromEntries(
+        userProjects.map(project => [project.id, project.title])
+      );
+      
+      // Fetch applicant details for all applications
+      const enhancedApplications: ProjectApplication[] = [];
+      
+      for (const app of pendingApplications) {
+        try {
+          // Get applicant details
+          const { data: applicantData, error: applicantError } = await supabase
+            .from("profile_details")
+            .select("id, first_name, last_name")
+            .eq("id", app.applicant_id)
+            .single();
+            
+          if (applicantError) {
+            console.error(`Error fetching applicant details for ${app.applicant_id}:`, applicantError);
+            continue;
+          }
+          
+          enhancedApplications.push({
+            ...app,
+            project: {
+              title: projectMap[app.project_id] || "Unknown Project"
+            },
+            applicant: {
+              id: app.applicant_id,
+              first_name: applicantData?.first_name || null,
+              last_name: applicantData?.last_name || null
+            }
+          });
+        } catch (error) {
+          console.error(`Error processing application ${app.id}:`, error);
+        }
+      }
+      
+      console.log("Enhanced applications:", enhancedApplications);
+      setApplications(enhancedApplications);
     } catch (error) {
       console.error("Failed to load project notifications:", error);
       toast({
@@ -160,7 +163,7 @@ export function useProjectNotifications(userId: string) {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [userId, toast]);
+  }, [userId]);
 
   const updateApplicationStatus = async (
     applicationId: string,

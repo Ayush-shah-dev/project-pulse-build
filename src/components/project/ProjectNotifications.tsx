@@ -31,6 +31,10 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
     try {
       console.log("Accepting application:", id);
       await updateApplicationStatus(id, "accepted");
+      toast({
+        title: "Application Accepted",
+        description: "The applicant has been notified of your decision",
+      });
     } catch (err) {
       console.error("Error accepting application:", err);
       setError("Failed to accept application. Please try again.");
@@ -46,6 +50,10 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
     try {
       console.log("Rejecting application:", id);
       await updateApplicationStatus(id, "rejected");
+      toast({
+        title: "Application Rejected",
+        description: "The applicant has been notified of your decision",
+      });
     } catch (err) {
       console.error("Error rejecting application:", err);
       setError("Failed to reject application. Please try again.");
@@ -56,17 +64,6 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
       });
     }
   };
-
-  // Show error toast if there's an error
-  useEffect(() => {
-    if (error) {
-      toast({
-        title: "Error",
-        description: error,
-        variant: "destructive",
-      });
-    }
-  }, [error, toast]);
 
   return (
     <ProjectNotificationsCard
