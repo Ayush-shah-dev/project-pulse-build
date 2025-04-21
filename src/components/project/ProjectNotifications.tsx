@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useProjectNotifications } from "@/hooks/useProjectNotifications";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import ProjectNotificationsCard from "./ProjectNotificationsCard";
 
 interface ProjectNotificationsProps {
@@ -15,11 +16,22 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
     updateApplicationStatus,
   } = useProjectNotifications(userId);
   const { toast } = useToast();
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
   const handleAccept = async (id: string) => {
     try {
+      setProcessingIds(prev => new Set(prev).add(id));
       console.log("Accepting application:", id);
       await updateApplicationStatus(id, "accepted");
+
+      // Notify the applicant via email
+      await supabase.functions.invoke("notify-applicant", {
+        body: {
+          applicationId: id,
+          status: "accepted"
+        },
+      });
+      
       toast({
         title: "Application Accepted",
         description: "The applicant has been notified of your decision",
@@ -31,13 +43,29 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
         description: "Failed to accept application. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setProcessingIds(prev => {
+        const updated = new Set(prev);
+        updated.delete(id);
+        return updated;
+      });
     }
   };
   
   const handleReject = async (id: string) => {
     try {
+      setProcessingIds(prev => new Set(prev).add(id));
       console.log("Rejecting application:", id);
       await updateApplicationStatus(id, "rejected");
+
+      // Notify the applicant via email
+      await supabase.functions.invoke("notify-applicant", {
+        body: {
+          applicationId: id,
+          status: "rejected"
+        },
+      });
+      
       toast({
         title: "Application Rejected",
         description: "The applicant has been notified of your decision",
@@ -49,6 +77,12 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
         description: "Failed to reject application. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setProcessingIds(prev => {
+        const updated = new Set(prev);
+        updated.delete(id);
+        return updated;
+      });
     }
   };
 
@@ -58,6 +92,7 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
       isLoading={isLoading}
       onAccept={handleAccept}
       onReject={handleReject}
+      processingIds={processingIds}
     />
   );
 };

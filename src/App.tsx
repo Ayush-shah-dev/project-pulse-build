@@ -25,6 +25,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Cookies from "./pages/Cookies";
 import ProjectView from "./pages/ProjectView";
+import ApplicationsRespond from "./pages/ApplicationsRespond";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/applications/respond" element={<ApplicationsRespond />} />
                 <Route path="/documentation" element={<Documentation />} />
                 <Route path="/guides" element={<Guides />} />
                 <Route path="/blog" element={<Blog />} />

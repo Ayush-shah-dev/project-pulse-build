@@ -10,6 +10,7 @@ interface Props {
   isLoading: boolean;
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
+  processingIds?: Set<string>;
 }
 
 const ProjectNotificationsCard = ({
@@ -17,6 +18,7 @@ const ProjectNotificationsCard = ({
   isLoading,
   onAccept,
   onReject,
+  processingIds = new Set(),
 }: Props) => {
   if (isLoading) {
     return (
@@ -74,6 +76,7 @@ const ProjectNotificationsCard = ({
             application={application}
             onAccept={() => onAccept(application.id)}
             onReject={() => onReject(application.id)}
+            isProcessing={processingIds.has(application.id)}
           />
         ))}
       </CardContent>

@@ -1,134 +1,82 @@
 
-import { Link } from "react-router-dom";
+import { AlertCircle, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, XCircle } from "lucide-react";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { ProjectApplication } from "@/hooks/useProjectNotifications";
-import { useState } from "react";
 
 interface Props {
   application: ProjectApplication;
   onAccept: () => void;
   onReject: () => void;
+  isProcessing?: boolean;
 }
 
-const ProjectApplicationNotificationItem = ({
-  application,
-  onAccept,
+const ProjectApplicationNotificationItem = ({ 
+  application, 
+  onAccept, 
   onReject,
+  isProcessing = false
 }: Props) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  
-  // Get applicant name, providing appropriate fallbacks
-  const hasFirstName = Boolean(application.applicant.first_name);
-  const hasLastName = Boolean(application.applicant.last_name);
-  const hasCompleteName = hasFirstName && hasLastName;
-  
-  let applicantName = "Anonymous User";
-  if (hasCompleteName) {
-    applicantName = `${application.applicant.first_name} ${application.applicant.last_name}`;
-  } else if (hasFirstName) {
-    applicantName = `${application.applicant.first_name}`;
-  } else if (hasLastName) {
-    applicantName = `${application.applicant.last_name}`;
-  }
-    
-  console.log("Rendering application item:", application);
-  
-  const handleAccept = async () => {
-    setIsProcessing(true);
-    try {
-      await onAccept();
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
-  const handleReject = async () => {
-    setIsProcessing(true);
-    try {
-      await onReject();
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const formattedDate = new Date(application.created_at).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-
-  // Get initials for avatar fallback
-  const getInitials = () => {
-    if (hasFirstName && application.applicant.first_name) {
-      return application.applicant.first_name.charAt(0).toUpperCase();
-    }
-    if (hasLastName && application.applicant.last_name) {
-      return application.applicant.last_name.charAt(0).toUpperCase();
-    }
-    return "A"; // Default for Anonymous
-  };
+  const { project, applicant } = application;
+  const applicantName = applicant.first_name && applicant.last_name
+    ? `${applicant.first_name} ${applicant.last_name}`
+    : "A user";
 
   return (
-    <div className="border-b pb-4 last:border-b-0 last:pb-0">
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center">
-          <Avatar className="h-8 w-8 mr-2">
-            <AvatarImage
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${application.applicant.id}`}
-              alt={applicantName}
-            />
-            <AvatarFallback>{getInitials()}</AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="font-medium">
-              {applicantName}
-              {!hasCompleteName && (
-                <span className="text-xs text-amber-500 ml-2 font-normal">
-                  (Incomplete Profile)
-                </span>
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Applied to{" "}
-              <Link
-                to={`/projects/${application.project_id}`}
-                className="font-medium hover:underline"
-              >
-                {application.project.title}
-              </Link>
-              <span className="ml-1">on {formattedDate}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 w-8 p-0 text-green-600 hover:bg-green-50 hover:text-green-700"
-            onClick={handleAccept}
-            disabled={isProcessing}
-            title="Accept Application"
-          >
-            <CheckCircle className="h-4 w-4" />
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">
+          {applicantName} applied to "{project.title}"
+        </CardTitle>
+        <CardDescription>
+          Received {new Date(application.created_at).toLocaleDateString()}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pb-2">
+        <Alert variant="default" className="bg-muted/50">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {application.message}
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2 pt-2">
+        {isProcessing ? (
+          <Button disabled className="w-20">
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            Wait...
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
-            onClick={handleReject}
-            disabled={isProcessing}
-            title="Reject Application"
-          >
-            <XCircle className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      <div className="bg-muted/50 rounded-md p-3 text-sm whitespace-pre-line">
-        {application.message}
-      </div>
-    </div>
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive border-destructive hover:bg-destructive/10"
+              onClick={onReject}
+            >
+              <XCircle className="h-4 w-4 mr-1" />
+              Reject
+            </Button>
+            <Button
+              size="sm"
+              className="bg-green-600 hover:bg-green-700"
+              onClick={onAccept}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Accept
+            </Button>
+          </>
+        )}
+      </CardFooter>
+    </Card>
   );
 };
 

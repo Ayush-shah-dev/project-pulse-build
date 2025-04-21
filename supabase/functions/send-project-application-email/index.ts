@@ -34,7 +34,18 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    console.log("Received email sending request");
     const data: SendEmailRequest = await req.json();
+    console.log("Request data:", JSON.stringify(data));
+
+    // Log the key pieces of information
+    console.log(`Sending email to: ${data.ownerEmail}`);
+    console.log(`Project title: ${data.projectTitle}`);
+    console.log(`Applicant name: ${data.applicantName}`);
+    
+    // Verify RESEND_API_KEY is available
+    const apiKey = Deno.env.get("RESEND_API_KEY");
+    console.log(`API Key available: ${apiKey ? "Yes" : "No"}`);
 
     const acceptLink = `${data.baseUrl}/applications/respond?applicationId=${data.applicationId}&action=accept`;
     const rejectLink = `${data.baseUrl}/applications/respond?applicationId=${data.applicationId}&action=reject`;
@@ -54,22 +65,31 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    await resend.emails.send({
+    console.log("Attempting to send email");
+    const emailResponse = await resend.emails.send({
       from: "Collab Platform <no-reply@collabplatform.com>",
       to: [data.ownerEmail],
       subject: `New application for your project "${data.projectTitle}"`,
       html,
     });
 
-    return new Response(JSON.stringify({ success: true }), {
+    console.log("Email send result:", JSON.stringify(emailResponse));
+
+    return new Response(JSON.stringify({ success: true, emailResponse }), {
       status: 200,
-      headers: corsHeaders,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders,
+      },
     });
   } catch (error) {
     console.error("Error sending application email:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: corsHeaders,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders,
+      },
     });
   }
 };
