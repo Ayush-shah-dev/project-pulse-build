@@ -53,6 +53,7 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
         if (projects && projects.length > 0) {
           const projectIds = projects.map(project => project.id);
           
+          // Using explicit join syntax instead of nested select
           const { data, error } = await supabase
             .from("project_applications")
             .select(`
@@ -62,9 +63,7 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
               message, 
               status, 
               created_at,
-              updated_at,
-              project:projects(title),
-              applicant:profile_details(id, first_name, last_name)
+              updated_at
             `)
             .in("project_id", projectIds)
             .eq("status", "pending")
@@ -72,7 +71,49 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
 
           if (error) throw error;
           
-          setApplications(data || []);
+          // If we have applications, fetch the related data separately
+          if (data && data.length > 0) {
+            // Create an array to hold the complete application data
+            const completeApplications: ProjectApplication[] = [];
+            
+            // Process each application
+            for (const app of data) {
+              // Fetch project info
+              const { data: projectData, error: projectError } = await supabase
+                .from("projects")
+                .select("title")
+                .eq("id", app.project_id)
+                .single();
+                
+              if (projectError) {
+                console.error("Error fetching project:", projectError);
+                continue;
+              }
+              
+              // Fetch applicant info
+              const { data: applicantData, error: applicantError } = await supabase
+                .from("profile_details")
+                .select("id, first_name, last_name")
+                .eq("id", app.applicant_id)
+                .single();
+                
+              if (applicantError) {
+                console.error("Error fetching applicant:", applicantError);
+                continue;
+              }
+              
+              // Add to complete applications
+              completeApplications.push({
+                ...app,
+                project: { title: projectData.title },
+                applicant: applicantData
+              });
+            }
+            
+            setApplications(completeApplications);
+          } else {
+            setApplications([]);
+          }
         }
       } catch (error) {
         console.error("Error fetching applications:", error);

@@ -54,23 +54,49 @@ const Dashboard = () => {
 
         if (projectsError) throw projectsError;
         
-        // Fetch user's applications
+        // Fetch user's applications data
         const { data: applicationsData, error: applicationsError } = await supabase
           .from("project_applications")
           .select(`
             id,
             project_id,
             status,
-            created_at,
-            project:projects(title)
+            created_at
           `)
           .eq("applicant_id", user.id)
           .order("created_at", { ascending: false });
 
         if (applicationsError) throw applicationsError;
         
+        // If we have applications, get the project titles separately
+        if (applicationsData && applicationsData.length > 0) {
+          const completeApplications: Application[] = [];
+          
+          for (const app of applicationsData) {
+            // Get project title for this application
+            const { data: projectData, error: projectError } = await supabase
+              .from("projects")
+              .select("title")
+              .eq("id", app.project_id)
+              .single();
+              
+            if (projectError) {
+              console.error("Error fetching project title:", projectError);
+              continue;
+            }
+            
+            completeApplications.push({
+              ...app,
+              project: { title: projectData.title }
+            });
+          }
+          
+          setApplications(completeApplications);
+        } else {
+          setApplications([]);
+        }
+        
         setProjects(projectsData || []);
-        setApplications(applicationsData || []);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         toast({
