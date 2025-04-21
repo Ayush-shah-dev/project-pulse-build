@@ -22,20 +22,38 @@ export default function ProjectApplyButton({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
+  // Don't display the button if the user is not logged in or is the project owner
+  if (!user || !project) {
+    return null;
+  }
+
+  // Check if this is the owner of the project
+  const isOwner = user.id === project.creator_id;
+  if (isOwner) {
+    return null;
+  }
+
   const handleSendMessage = async (message: string) => {
-    if (!project || !user) return;
+    if (!project || !user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to contact project owners.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     console.log("Sending message to project owner", {
       projectId: project.id,
       senderId: user.id,
-      message
+      message: message
     });
     
     setIsSubmitting(true);
     
     try {
       // Send a chat message directly
-      const { error: messageError } = await supabase
+      const { error } = await supabase
         .from('project_chat_messages')
         .insert({
           project_id: project.id,
@@ -43,9 +61,9 @@ export default function ProjectApplyButton({
           content: message
         });
 
-      if (messageError) {
-        console.error("Error details:", messageError);
-        throw messageError;
+      if (error) {
+        console.error("Error details:", error);
+        throw error;
       }
       
       toast({

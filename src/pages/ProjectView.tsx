@@ -32,25 +32,34 @@ export default function ProjectView() {
           <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
             <div className="w-full md:w-auto">
               <h1 className="text-3xl font-bold mb-2">{project.title}</h1>
-              {project.stage && (
-                <Badge className="mr-2 capitalize">
-                  {project.stage}
-                </Badge>
-              )}
-              {project.category && (
-                <Badge variant="outline">
-                  {project.category}
-                </Badge>
-              )}
+              <div className="flex flex-wrap gap-2 mb-2">
+                {project.stage && (
+                  <Badge className="capitalize">
+                    {project.stage}
+                  </Badge>
+                )}
+                {project.category && (
+                  <Badge variant="outline">
+                    {project.category}
+                  </Badge>
+                )}
+              </div>
             </div>
+
+            {/* Always show this div to maintain layout */}
             <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-              {!isOwner && user && (
+              {user && !isOwner && (
                 <ProjectApplyButton project={project} user={user} />
               )}
               {isOwner && (
                 <Badge variant="outline" className="bg-primary/10 text-primary py-2 px-4">
                   You are the owner of this project
                 </Badge>
+              )}
+              {!user && (
+                <Link to="/login">
+                  <Button>Log in to Contact Owner</Button>
+                </Link>
               )}
             </div>
           </div>
