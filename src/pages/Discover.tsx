@@ -1,74 +1,79 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Layout from "@/components/layout/Layout";
 import UserCard from "@/components/user/UserCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-// Mock data for users
-const mockUsers = [
-  {
-    id: "user1",
-    name: "Emily Chen",
-    avatar: "https://randomuser.me/api/portraits/women/12.jpg",
-    title: "Full Stack Developer",
-    skills: ["React", "Node.js", "TypeScript", "MongoDB", "AWS"],
-    matchScore: 89,
-    location: "San Francisco, CA"
-  },
-  {
-    id: "user2",
-    name: "David Kim",
-    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-    title: "UX/UI Designer",
-    skills: ["Figma", "Adobe XD", "User Research", "Prototyping", "CSS"],
-    matchScore: 85,
-    location: "New York, NY"
-  },
-  {
-    id: "user3",
-    name: "Sarah Johnson",
-    avatar: "https://randomuser.me/api/portraits/women/22.jpg",
-    title: "Product Manager",
-    skills: ["Agile", "User Stories", "Roadmapping", "Analytics", "Leadership"],
-    matchScore: 78,
-    location: "Boston, MA"
-  },
-  {
-    id: "user4",
-    name: "Michael Rodriguez",
-    avatar: "https://randomuser.me/api/portraits/men/45.jpg",
-    title: "Data Scientist",
-    skills: ["Python", "Machine Learning", "SQL", "Data Visualization", "TensorFlow"],
-    matchScore: 76,
-    location: "Austin, TX"
-  },
-  {
-    id: "user5",
-    name: "Jessica Lee",
-    avatar: "https://randomuser.me/api/portraits/women/45.jpg",
-    title: "DevOps Engineer",
-    skills: ["Docker", "Kubernetes", "CI/CD", "AWS", "Linux"],
-    matchScore: 72,
-    location: "Seattle, WA"
-  },
-  {
-    id: "user6",
-    name: "Thomas Wright",
-    avatar: "https://randomuser.me/api/portraits/men/67.jpg",
-    title: "Blockchain Developer",
-    skills: ["Solidity", "Ethereum", "Smart Contracts", "Web3.js", "DeFi"],
-    matchScore: 70,
-    location: "Miami, FL"
-  }
-];
+interface ProfileDetail {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url?: string | null;
+  title: string | null;
+  location: string | null;
+  skills: string[] | null;
+  industry: string | null;
+  education: string | null;
+  experience: string | null;
+  linkedin_url: string | null;
+  github_url: string | null;
+  bio: string | null;
+}
+
+// Calculate profile completeness score (very basic, adjust as needed)
+function getProfileCompletion(profile: ProfileDetail): number {
+  const totalFields = 9;
+  let filled = 0;
+  if (profile.first_name) filled++;
+  if (profile.last_name) filled++;
+  if (profile.title) filled++;
+  if (profile.location) filled++;
+  if (profile.skills && profile.skills.length > 0) filled++;
+  if (profile.industry) filled++;
+  if (profile.education) filled++;
+  if (profile.experience) filled++;
+  if (profile.bio) filled++;
+  return Math.round((filled / totalFields) * 100);
+}
 
 const Discover = () => {
+  const [users, setUsers] = useState<ProfileDetail[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterExpanded, setFilterExpanded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("profile_details")
+        .select("*");
+      if (!error && data) {
+        setUsers(
+          data.filter((user: ProfileDetail) => getProfileCompletion(user) >= 70)
+        );
+      }
+      setIsLoading(false);
+    };
+    fetchUsers();
+  }, []);
+
+  // Filter by search
+  const filteredUsers = users.filter((user) => {
+    const fullName = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
+    const skills = user.skills?.join(" ") ?? "";
+    const location = user.location ?? "";
+    return (
+      fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      skills.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      location.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   return (
     <Layout>
@@ -79,16 +84,15 @@ const Discover = () => {
             Find like-minded people with complementary skills for your next project.
           </p>
         </div>
-
         <Tabs defaultValue="people" className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <TabsList>
               <TabsTrigger value="people">People</TabsTrigger>
               <TabsTrigger value="projects">Projects</TabsTrigger>
             </TabsList>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setFilterExpanded(!filterExpanded)}
               className="flex items-center gap-2"
             >
@@ -109,7 +113,6 @@ const Discover = () => {
                 />
               </div>
             </div>
-
             {filterExpanded && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-muted/30 rounded-md">
                 <div>
@@ -145,34 +148,45 @@ const Discover = () => {
                   <label className="text-sm font-medium mb-1 block">Sort By</label>
                   <Select>
                     <SelectTrigger>
-                      <SelectValue placeholder="Match Score" />
+                      <SelectValue placeholder="Completion %" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="match">Match Score</SelectItem>
-                      <SelectItem value="recent">Recently Active</SelectItem>
-                      <SelectItem value="experience">Experience Level</SelectItem>
+                      <SelectItem value="match">Profile Completion</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mockUsers.map((user) => (
-                <UserCard
-                  key={user.id}
-                  id={user.id}
-                  name={user.name}
-                  avatar={user.avatar}
-                  title={user.title}
-                  skills={user.skills}
-                  matchScore={user.matchScore}
-                  location={user.location}
-                />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="text-center py-10">Loading users...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredUsers.length === 0 ? (
+                  <div className="text-muted-foreground text-center col-span-3 py-10">
+                    No users found matching your criteria.
+                  </div>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <div key={user.id} className="flex flex-col">
+                      <UserCard
+                        id={user.id}
+                        name={`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || "Anonymous"}
+                        avatar={user.avatar_url ?? undefined}
+                        title={user.title ?? ""}
+                        skills={user.skills ?? []}
+                        location={user.location ?? ""}
+                        // Optional: pass in matchScore={getProfileCompletion(user)} for visibility
+                      />
+                      <Button className="mt-3" variant="secondary">
+                        Apply to Project
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </TabsContent>
-
           <TabsContent value="projects">
             <div className="flex justify-center items-center p-10">
               <p className="text-muted-foreground">
