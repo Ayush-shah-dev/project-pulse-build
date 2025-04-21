@@ -101,6 +101,19 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Chat initialized successfully with message:", message);
     
+    // Update application status to "accepted" if it's not already
+    if (application.status !== "accepted") {
+      const { error: updateError } = await supabase
+        .from("project_applications")
+        .update({ status: "accepted" })
+        .eq("id", applicationId);
+        
+      if (updateError) {
+        console.error("Error updating application status:", updateError);
+        // Continue anyway since we already created the chat message
+      }
+    }
+    
     return new Response(
       JSON.stringify({ success: true, chatInitialized: true, message }),
       { 

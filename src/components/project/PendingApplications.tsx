@@ -19,6 +19,7 @@ export default function PendingApplications({ applications, onApplicationUpdate 
   const handleAccept = async (applicationId: string, applicantId: string) => {
     try {
       setProcessingIds(prev => new Set(prev).add(applicationId));
+      console.log(`Accepting application ${applicationId} for applicant ${applicantId}`);
 
       // Initialize chat and update application status
       const { data, error: chatError } = await supabase.functions.invoke("project-chat-init", {
@@ -28,21 +29,19 @@ export default function PendingApplications({ applications, onApplicationUpdate 
         },
       });
 
-      if (chatError) throw chatError;
+      if (chatError) {
+        console.error("Error accepting application:", chatError);
+        throw new Error(`Failed to initialize chat: ${chatError.message}`);
+      }
 
-      // Update application status
-      const { error: updateError } = await supabase
-        .from("project_applications")
-        .update({ status: "accepted" })
-        .eq("id", applicationId);
-
-      if (updateError) throw updateError;
+      console.log("Chat initialization response:", data);
 
       toast({
         title: "Application Accepted",
         description: "The applicant has been notified and chat has been enabled",
       });
 
+      // Explicitly refetch applications after accepting
       onApplicationUpdate();
     } catch (error) {
       console.error("Error accepting application:", error);
@@ -63,19 +62,24 @@ export default function PendingApplications({ applications, onApplicationUpdate 
   const handleReject = async (applicationId: string) => {
     try {
       setProcessingIds(prev => new Set(prev).add(applicationId));
+      console.log("Rejecting application:", applicationId);
 
       const { error } = await supabase
         .from("project_applications")
         .update({ status: "rejected" })
         .eq("id", applicationId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating application status:", error);
+        throw error;
+      }
 
       toast({
         title: "Application Rejected",
         description: "The applicant has been notified",
       });
 
+      // Explicitly refetch applications after rejecting
       onApplicationUpdate();
     } catch (error) {
       console.error("Error rejecting application:", error);
