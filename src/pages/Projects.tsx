@@ -1,102 +1,51 @@
-
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/layout/Layout";
 import ProjectCard from "@/components/project/ProjectCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Search, Plus, SlidersHorizontal, Loader2 } from "lucide-react";
+import { Plus, Search, SlidersHorizontal } from "lucide-react";
 import { Link } from "react-router-dom";
-
-interface ProjectMember {
-  id: string;
-  name: string;
-  avatar?: string;
-}
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Project {
   id: string;
   title: string;
   description: string;
   tags: string[];
-  stage: string; // Changed from specific union type to string to match database
-  creator_id: string;
+  stage: string;
   roles_needed: string[];
-  category: string;
-  created_at: string;
   updated_at: string;
-  // Extended properties for UI
-  members?: ProjectMember[];
-  matchScore?: number;
+  creator_id: string;
 }
 
 const Projects = () => {
-  const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStage, setSelectedStage] = useState<string>("all");
-  const [filterExpanded, setFilterExpanded] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterExpanded, setFilterExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchProjects = async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
-        
-        const { data: projectsData, error } = await supabase
-          .from('projects')
-          .select(`
-            id, 
-            title, 
-            description, 
-            tags, 
-            stage, 
-            roles_needed,
-            updated_at,
-            created_at,
-            creator_id,
-            category
-          `)
-          .order('updated_at', { ascending: false });
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .order("updated_at", { ascending: false });
 
         if (error) {
           throw error;
         }
 
-        if (projectsData) {
-          const projectsWithMembers = await Promise.all(
-            projectsData.map(async (project) => {
-              const { data: profileData } = await supabase
-                .from('profile_details')
-                .select('first_name, last_name, id')
-                .eq('id', project.creator_id)
-                .single();
-
-              const matchScore = Math.floor(Math.random() * 30) + 70;
-              
-              return {
-                ...project,
-                members: profileData ? [{
-                  id: profileData.id,
-                  name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Anonymous User',
-                  avatar: `https://randomuser.me/api/portraits//${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 100)}.jpg`
-                }] : [],
-                matchScore: matchScore,
-              } as Project; // Explicitly cast to Project type
-            })
-          );
-
-          setProjects(projectsWithMembers);
-        }
+        setProjects(data || []);
       } catch (error) {
-        console.error('Error fetching projects:', error);
+        console.error("Error fetching projects:", error);
         toast({
-          title: 'Error',
-          description: 'Failed to load projects',
-          variant: 'destructive',
+          title: "Error",
+          description: "Failed to fetch projects",
+          variant: "destructive",
         });
       } finally {
         setIsLoading(false);
@@ -106,187 +55,108 @@ const Projects = () => {
     fetchProjects();
   }, [toast]);
 
-  const filteredProjects = projects.filter(project => {
-    const matchesStage = selectedStage === "all" || project.stage === selectedStage;
-    const matchesSearch = searchQuery === "" || 
-      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    return matchesStage && matchesSearch;
+  const filteredProjects = projects.filter((project) => {
+    const searchTerm = searchQuery.toLowerCase();
+    return (
+      project.title.toLowerCase().includes(searchTerm) ||
+      project.description.toLowerCase().includes(searchTerm) ||
+      project.tags.some((tag) => tag.toLowerCase().includes(searchTerm)) ||
+      project.stage.toLowerCase().includes(searchTerm)
+    );
   });
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Open Projects</h1>
+            <h1 className="text-3xl font-bold mb-2">Explore Projects</h1>
             <p className="text-muted-foreground">
-              Discover projects looking for collaborators or start your own.
+              Discover projects to collaborate on or create your own
             </p>
           </div>
-          <Link to="/projects/create">
-            <Button className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              New Project
-            </Button>
-          </Link>
+          <Button asChild className="flex gap-2">
+            <Link to="/create-project">
+              <Plus className="h-5 w-5" />
+              Create Project
+            </Link>
+          </Button>
         </div>
 
         <div className="mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
+          <div className="flex items-center justify-between">
+            <div className="relative w-full md:w-auto">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search by name, description, or tags..."
+                placeholder="Search projects..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setFilterExpanded(!filterExpanded)}
-                className="flex items-center gap-2"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                Filters
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilterExpanded(!filterExpanded)}
+              className="hidden md:flex items-center gap-2"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Filters
+            </Button>
           </div>
+          {filterExpanded && (
+            <div className="mt-4 p-4 bg-muted/30 rounded-md">
+              {/* Add filter components here */}
+            </div>
+          )}
         </div>
 
-        <div className="mb-6 flex flex-wrap gap-2">
-          <Badge 
-            variant={selectedStage === "all" ? "default" : "outline"} 
-            className="cursor-pointer"
-            onClick={() => setSelectedStage("all")}
-          >
-            All Stages
-          </Badge>
-          <Badge 
-            variant={selectedStage === "idea" ? "default" : "outline"} 
-            className="cursor-pointer"
-            onClick={() => setSelectedStage("idea")}
-          >
-            Idea
-          </Badge>
-          <Badge 
-            variant={selectedStage === "prototype" ? "default" : "outline"} 
-            className="cursor-pointer"
-            onClick={() => setSelectedStage("prototype")}
-          >
-            Prototype
-          </Badge>
-          <Badge 
-            variant={selectedStage === "mvp" ? "default" : "outline"} 
-            className="cursor-pointer"
-            onClick={() => setSelectedStage("mvp")}
-          >
-            MVP
-          </Badge>
-          <Badge 
-            variant={selectedStage === "launched" ? "default" : "outline"} 
-            className="cursor-pointer"
-            onClick={() => setSelectedStage("launched")}
-          >
-            Launched
-          </Badge>
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold mb-4">All Projects</h2>
+          {isLoading ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[...Array(8)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-80 rounded-lg border border-gray-200 bg-white p-4"
+                >
+                  <div className="h-full animate-pulse">
+                    <div className="h-4 w-3/4 rounded bg-gray-200"></div>
+                    <div className="mt-4 h-24 rounded bg-gray-200"></div>
+                    <div className="mt-4 h-4 w-1/2 rounded bg-gray-200"></div>
+                    <div className="mt-2 h-4 w-1/4 rounded bg-gray-200"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProjects.length > 0 ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredProjects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  id={project.id}
+                  title={project.title}
+                  description={project.description}
+                  tags={project.tags || []}
+                  stage={project.stage}
+                  rolesNeeded={project.roles_needed}
+                  updatedAt={project.updated_at}
+                  creatorId={project.creator_id}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="my-12 text-center">
+              <p className="text-lg font-medium">No projects found</p>
+              <p className="text-muted-foreground mt-2">
+                Try adjusting your filters or create a new project
+              </p>
+            </div>
+          )}
         </div>
-
-        {filterExpanded && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-muted/30 rounded-md">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Category</label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tech">Technology</SelectItem>
-                  <SelectItem value="health">Healthcare</SelectItem>
-                  <SelectItem value="education">Education</SelectItem>
-                  <SelectItem value="finance">Finance</SelectItem>
-                  <SelectItem value="social">Social Impact</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Skills Needed</label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Any Skills" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dev">Development</SelectItem>
-                  <SelectItem value="design">Design</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="data">Data Science</SelectItem>
-                  <SelectItem value="pm">Project Management</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Sort By</label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Match Score" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="match">Match Score</SelectItem>
-                  <SelectItem value="recent">Recently Updated</SelectItem>
-                  <SelectItem value="members">Team Size</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        )}
-
-        {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Loading projects...</span>
-          </div>
-        ) : filteredProjects.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredProjects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                id={project.id}
-                title={project.title}
-                description={project.description}
-                tags={project.tags}
-                stage={project.stage}
-                members={project.members || []}
-                rolesNeeded={project.roles_needed}
-                matchScore={project.matchScore}
-                updatedAt={project.updated_at}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-muted/20 rounded-lg">
-            <h3 className="text-xl font-medium mb-2">No projects found</h3>
-            <p className="text-muted-foreground mb-6">
-              {searchQuery || selectedStage !== "all" 
-                ? "No projects match your search criteria. Try adjusting your filters."
-                : "No projects have been created yet. Be the first to share your idea!"}
-            </p>
-            <Link to="/projects/create">
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Project
-              </Button>
-            </Link>
-          </div>
-        )}
       </div>
     </Layout>
   );
 };
 
 export default Projects;
-

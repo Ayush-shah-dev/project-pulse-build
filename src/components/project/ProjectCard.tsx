@@ -27,6 +27,7 @@ interface ProjectCardProps {
   rolesNeeded?: string[];
   matchScore?: number;
   updatedAt: string;
+  creatorId: string;
 }
 
 const ProjectCard = ({
@@ -38,7 +39,8 @@ const ProjectCard = ({
   members = [],
   rolesNeeded,
   matchScore,
-  updatedAt
+  updatedAt,
+  creatorId
 }: ProjectCardProps) => {
   const getStageColor = () => {
     const normalizedStage = stage.toLowerCase();
@@ -69,6 +71,8 @@ const ProjectCard = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  const isOwner = user && user.id === creatorId;
 
   const handleApply = async (answers: { why: string; experience: string; }) => {
     setIsSubmitting(true);
@@ -168,14 +172,20 @@ const ProjectCard = ({
           <Link to={`/projects/${id}`}>View Project</Link>
         </Button>
         <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            onClick={() => setShowModal(true)}
-            className="h-8"
-            disabled={!user}
-          >
-            Apply to Project
-          </Button>
+          {!isOwner ? (
+            <Button
+              variant="secondary"
+              onClick={() => setShowModal(true)}
+              className="h-8"
+              disabled={!user}
+            >
+              Apply to Project
+            </Button>
+          ) : (
+            <Badge variant="outline" className="bg-primary/10 text-primary">
+              Your Project
+            </Badge>
+          )}
           <Button variant="ghost" size="icon" className="h-8 w-8">
             <MessageSquare className="h-4 w-4" />
           </Button>

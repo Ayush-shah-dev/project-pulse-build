@@ -43,6 +43,8 @@ const ProjectView = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  const isOwner = user && project ? user.id === project.creator_id : false;
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -73,7 +75,7 @@ const ProjectView = () => {
             members: profileData ? [{
               id: profileData.id,
               name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Anonymous User',
-              avatar: `https://randomuser.me/api/portraits//${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 100)}.jpg`,
+              avatar: profileData?.id ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${profileData.id}` : undefined,
               role: 'Project Owner'
             }] : [],
           };
@@ -204,10 +206,17 @@ const ProjectView = () => {
                 </span>
               </div>
             </div>
-            <Button onClick={() => setShowModal(true)} className="flex items-center gap-2" disabled={!user}>
-              <Users className="h-4 w-4" />
-              Apply to Project
-            </Button>
+            {!isOwner && user && (
+              <Button onClick={() => setShowModal(true)} className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Apply to Project
+              </Button>
+            )}
+            {isOwner && (
+              <Badge variant="outline" className="bg-primary/10 text-primary py-2 px-4">
+                You are the owner of this project
+              </Badge>
+            )}
           </div>
         </div>
 
