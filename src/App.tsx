@@ -24,6 +24,7 @@ import Support from "./pages/Support";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Cookies from "./pages/Cookies";
+import ProjectView from "./pages/ProjectView";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
                 <Route path="/about" element={<About />} />
                 <Route path="/discover" element={<Discover />} />
                 <Route path="/projects" element={<Projects />} />
+                <Route path="/projects/:id" element={<ProjectView />} />
                 <Route path="/projects/create" element={<CreateProject />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
