@@ -58,7 +58,8 @@ export function useProjectNotifications(userId: string) {
           console.log("Project IDs to check for applications:", projectIds);
 
           // Get applications for all user's projects with status "pending"
-          const { data: applications, error } = await supabase
+          // Important: We're now joining the data in a different way
+          const { data: appData, error } = await supabase
             .from("project_applications")
             .select(`
               id, 
@@ -67,15 +68,7 @@ export function useProjectNotifications(userId: string) {
               message, 
               status, 
               created_at,
-              updated_at,
-              project:project_id (
-                title
-              ),
-              applicant:applicant_id (
-                id,
-                first_name,
-                last_name
-              )
+              updated_at
             `)
             .in("project_id", projectIds)
             .eq("status", "pending");
@@ -85,10 +78,41 @@ export function useProjectNotifications(userId: string) {
             throw error;
           }
 
-          console.log(`Found ${applications?.length || 0} pending applications`, applications);
+          console.log(`Found ${appData?.length || 0} pending applications`);
           
-          if (applications && applications.length > 0) {
-            setApplications(applications);
+          if (appData && appData.length > 0) {
+            // Now we need to fetch project titles and applicant details separately
+            const enhancedApplications: ProjectApplication[] = [];
+            
+            for (const app of appData) {
+              // Get the project title
+              const { data: projectData } = await supabase
+                .from("projects")
+                .select("title")
+                .eq("id", app.project_id)
+                .single();
+                
+              // Get the applicant details
+              const { data: applicantData } = await supabase
+                .from("profile_details")
+                .select("id, first_name, last_name")
+                .eq("id", app.applicant_id)
+                .single();
+                
+              enhancedApplications.push({
+                ...app,
+                project: {
+                  title: projectData?.title || "Unknown Project"
+                },
+                applicant: {
+                  id: app.applicant_id,
+                  first_name: applicantData?.first_name || null,
+                  last_name: applicantData?.last_name || null
+                }
+              });
+            }
+            
+            setApplications(enhancedApplications);
           } else {
             console.log("No pending applications found");
             setApplications([]);
