@@ -32,22 +32,34 @@ export default function ProjectView() {
           <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
             <div className="w-full md:w-auto">
               <h1 className="text-3xl font-bold mb-2">{project.title}</h1>
+              {project.stage && (
+                <Badge className="mr-2 capitalize">
+                  {project.stage}
+                </Badge>
+              )}
+              {project.category && (
+                <Badge variant="outline">
+                  {project.category}
+                </Badge>
+              )}
             </div>
-            {!isOwner && user && (
-              <ProjectApplyButton project={project} user={user} />
-            )}
-            {isOwner && (
-              <Badge variant="outline" className="bg-primary/10 text-primary py-2 px-4">
-                You are the owner of this project
-              </Badge>
-            )}
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+              {!isOwner && user && (
+                <ProjectApplyButton project={project} user={user} />
+              )}
+              {isOwner && (
+                <Badge variant="outline" className="bg-primary/10 text-primary py-2 px-4">
+                  You are the owner of this project
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <ProjectDetails project={project} />
-            {isOwner && applications.length > 0 && (
+            {isOwner && applications && applications.length > 0 && (
               <div className="mt-6">
                 <PendingApplications 
                   applications={applications}
@@ -57,7 +69,7 @@ export default function ProjectView() {
             )}
           </div>
           <div>
-            <ProjectTeam members={project.members} />
+            <ProjectTeam members={project.members || []} />
             <ProjectResources />
           </div>
         </div>

@@ -5,6 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +17,7 @@ interface DirectMessageModalProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
   loading?: boolean;
+  projectTitle?: string;
 }
 
 export default function DirectMessageModal({
@@ -23,30 +25,40 @@ export default function DirectMessageModal({
   onOpenChange,
   onSubmit,
   loading,
+  projectTitle,
 }: DirectMessageModalProps) {
   const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(message);
+    if (message.trim()) {
+      onSubmit(message);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Contact Project Owner</DialogTitle>
+          <DialogDescription>
+            {projectTitle ? `Send a message about "${projectTitle}"` : "Introduce yourself and explain why you'd like to join this project"}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Textarea
-              placeholder="Introduce yourself and explain why you'd like to join this project..."
+              placeholder="Hi there! I'm interested in your project and would like to learn more about how I can contribute..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               className="h-32"
+              autoFocus
             />
           </div>
           <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
             <Button type="submit" disabled={loading || !message.trim()}>
               {loading ? (
                 <>

@@ -24,6 +24,13 @@ export default function ProjectApplyButton({
 
   const handleSendMessage = async (message: string) => {
     if (!project || !user) return;
+    
+    console.log("Sending message to project owner", {
+      projectId: project.id,
+      senderId: user.id,
+      message
+    });
+    
     setIsSubmitting(true);
     
     try {
@@ -36,7 +43,10 @@ export default function ProjectApplyButton({
           content: message
         });
 
-      if (messageError) throw messageError;
+      if (messageError) {
+        console.error("Error details:", messageError);
+        throw messageError;
+      }
       
       toast({
         title: "Message Sent",
@@ -50,8 +60,9 @@ export default function ProjectApplyButton({
         description: "There was an error sending your message. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   return (
@@ -69,6 +80,7 @@ export default function ProjectApplyButton({
         onOpenChange={setShowModal}
         onSubmit={handleSendMessage}
         loading={isSubmitting}
+        projectTitle={project.title}
       />
     </>
   );
