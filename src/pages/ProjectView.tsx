@@ -8,6 +8,7 @@ import ProjectTeam from "@/components/project/ProjectTeam";
 import ProjectResources from "@/components/project/ProjectResources";
 import ProjectDetails from "@/components/project/ProjectDetails";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";  // Add this import
 import ProjectApplyButton from "@/components/project/ProjectApplyButton";
 import { useProjectView } from "@/hooks/useProjectView";
 import PendingApplications from "@/components/project/PendingApplications";
