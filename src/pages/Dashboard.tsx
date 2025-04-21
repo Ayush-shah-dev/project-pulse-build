@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,7 +8,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Search, User, FileEdit, UserCircle, Star, Calendar, Bell } from "lucide-react";
+import { AlertCircle, Plus, Search, User, FileEdit, UserCircle, Star, Calendar, Bell, Loader2 } from "lucide-react";
+
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  stage: string;
+  tags: string[];
+  roles_needed: string[];
+  created_at: string;
+  updated_at: string;
+}
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
@@ -15,6 +28,8 @@ const Dashboard = () => {
   const [profileData, setProfileData] = useState(null);
   const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -74,6 +89,35 @@ const Dashboard = () => {
     fetchProfileData();
   }, [user]);
 
+  // Fetch user's projects
+  useEffect(() => {
+    const fetchUserProjects = async () => {
+      if (!user) return;
+
+      try {
+        setProjectsLoading(true);
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('creator_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching projects:', error);
+          return;
+        }
+
+        setProjects(data || []);
+      } catch (error) {
+        console.error('Error in projects fetch:', error);
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+
+    fetchUserProjects();
+  }, [user]);
+
   const isProfileComplete = () => {
     return profileCompletionPercentage < 70;
   };
@@ -81,35 +125,61 @@ const Dashboard = () => {
   if (isLoading || profileLoading) {
     return (
       <Layout>
-        <div className="container mx-auto py-12">
-          <p className="text-center">Loading...</p>
+        <div className="container mx-auto py-12 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+          <p>Loading...</p>
         </div>
       </Layout>
     );
   }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  };
+
+  const getStageColor = (stage: string) => {
+    const normalizedStage = stage.toLowerCase();
+    switch (normalizedStage) {
+      case "idea":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "prototype":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "mvp":
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      case "launched":
+        return "bg-green-100 text-green-800 border-green-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
           <h1 className="text-3xl font-bold">Welcome, {user?.user_metadata?.first_name || profileData?.first_name || 'User'}!</h1>
-          <p className="text-gray-600">Manage your projects and find collaborators</p>
+          <p className="text-gray-600 dark:text-gray-400">Manage your projects and find collaborators</p>
         </header>
 
         {isProfileComplete() && (
-          <Card className="mb-8 border-yellow-300 bg-yellow-50">
+          <Card className="mb-8 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700">
             <CardContent className="flex items-start gap-4 p-6">
               <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
               <div>
-                <h3 className="font-medium text-yellow-800">Complete your profile</h3>
-                <p className="text-yellow-700 text-sm mt-1">
+                <h3 className="font-medium text-yellow-800 dark:text-yellow-400">Complete your profile</h3>
+                <p className="text-yellow-700 dark:text-yellow-500 text-sm mt-1">
                   Your profile is {profileCompletionPercentage}% complete. Add more information to help others find you 
                   and increase your chances of finding collaborators.
                 </p>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="mt-3 border-yellow-300 hover:bg-yellow-100"
+                  className="mt-3 border-yellow-300 hover:bg-yellow-100 dark:border-yellow-700 dark:hover:bg-yellow-900/40"
                   onClick={() => navigate("/profile")}
                 >
                   <UserCircle className="h-4 w-4 mr-2" />
@@ -136,7 +206,7 @@ const Dashboard = () => {
                   <CardDescription>Projects you've created</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold">0</p>
+                  <p className="text-3xl font-bold">{projects.length}</p>
                   <div className="mt-4">
                     <Button size="sm" onClick={() => navigate("/projects/create")}>
                       <Plus className="h-4 w-4 mr-2" />
@@ -173,7 +243,7 @@ const Dashboard = () => {
                       <span>Profile</span>
                       <span className="text-sm">{profileCompletionPercentage}%</span>
                     </div>
-                    <div className="h-2 bg-gray-200 rounded-full">
+                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
                       <div 
                         className="h-2 bg-primary rounded-full" 
                         style={{ width: `${profileCompletionPercentage}%` }}
@@ -191,6 +261,47 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {projects.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Recent Projects</CardTitle>
+                  <CardDescription>Projects you've recently created</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {projects.slice(0, 2).map(project => (
+                      <div key={project.id} className="p-4 border rounded-md">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-medium">{project.title}</h3>
+                          <Badge className={getStageColor(project.stage)}>
+                            {project.stage.charAt(0).toUpperCase() + project.stage.slice(1)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                          {project.description}
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">
+                            Created {formatDate(project.created_at)}
+                          </span>
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/projects/${project.id}`)}>
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+                {projects.length > 2 && (
+                  <CardFooter>
+                    <Button variant="outline" className="w-full" onClick={() => navigate("/projects")}>
+                      View All Projects
+                    </Button>
+                  </CardFooter>
+                )}
+              </Card>
+            )}
 
             <Card>
               <CardHeader>
@@ -294,18 +405,56 @@ const Dashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12">
-                  <FileEdit className="h-16 w-16 mx-auto text-muted-foreground opacity-20 mb-4" />
-                  <h3 className="text-xl font-medium mb-2">No projects yet</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                    Share your ideas and find collaborators by creating your first project.
-                    Get started by clicking the "Create New Project" button.
-                  </p>
-                  <Button onClick={() => navigate("/projects/create")}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create New Project
-                  </Button>
-                </div>
+                {projectsLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+                    <p>Loading your projects...</p>
+                  </div>
+                ) : projects.length > 0 ? (
+                  <div className="grid gap-4">
+                    {projects.map(project => (
+                      <div key={project.id} className="p-4 border rounded-md">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-medium">{project.title}</h3>
+                          <Badge className={getStageColor(project.stage)}>
+                            {project.stage.charAt(0).toUpperCase() + project.stage.slice(1)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {project.description}
+                        </p>
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {project.tags && project.tags.map((tag, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">
+                            Created {formatDate(project.created_at)}
+                          </span>
+                          <Button size="sm" onClick={() => navigate(`/projects/${project.id}`)}>
+                            View Project
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <FileEdit className="h-16 w-16 mx-auto text-muted-foreground opacity-20 mb-4" />
+                    <h3 className="text-xl font-medium mb-2">No projects yet</h3>
+                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                      Share your ideas and find collaborators by creating your first project.
+                      Get started by clicking the "Create New Project" button.
+                    </p>
+                    <Button onClick={() => navigate("/projects/create")}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create New Project
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
