@@ -11,6 +11,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Plus, ArrowRight, Calendar, Users, BookOpen, Rocket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ProjectNotifications from "@/components/project/ProjectNotifications";
+import ProjectsListCard from "@/components/dashboard/ProjectsListCard";
+import ApplicationsListCard from "@/components/dashboard/ApplicationsListCard";
+import ProfileCompletionCard from "@/components/dashboard/ProfileCompletionCard";
+import QuickActionsCard from "@/components/dashboard/QuickActionsCard";
+import RecommendedProjectsCard from "@/components/dashboard/RecommendedProjectsCard";
 
 interface Project {
   id: string;
@@ -164,206 +169,14 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-8 space-y-6">
               {user && <ProjectNotifications userId={user.id} />}
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <div>
-                    <CardTitle>Your Projects</CardTitle>
-                    <CardDescription>
-                      Projects you've created or are managing
-                    </CardDescription>
-                  </div>
-                  <Button asChild>
-                    <Link to="/create-project" className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      Create Project
-                    </Link>
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {projects.length === 0 ? (
-                    <div className="text-center py-6">
-                      <h3 className="text-lg font-medium mb-2">No projects yet</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Create your first project to start collaborating with others
-                      </p>
-                      <Button asChild>
-                        <Link to="/create-project" className="flex items-center gap-2">
-                          <Plus className="h-4 w-4" />
-                          Create Project
-                        </Link>
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {projects.slice(0, 3).map((project) => (
-                        <div key={project.id} className="flex flex-col md:flex-row justify-between border rounded-lg p-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-medium">{project.title}</h3>
-                              <Badge className={getStageColor(project.stage)}>
-                                {project.stage.charAt(0).toUpperCase() + project.stage.slice(1)}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                              {project.description}
-                            </p>
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Calendar className="h-3 w-3 mr-1" />
-                              Updated {formatDate(project.updated_at)}
-                            </div>
-                          </div>
-                          <div className="flex items-center mt-4 md:mt-0">
-                            <Button variant="outline" size="sm" asChild>
-                              <Link to={`/projects/${project.id}`}>
-                                View Project
-                              </Link>
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-                {projects.length > 3 && (
-                  <CardFooter>
-                    <Button variant="ghost" asChild className="w-full">
-                      <Link to="/projects" className="flex items-center justify-center">
-                        View All Projects
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                )}
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Your Applications</CardTitle>
-                  <CardDescription>
-                    Projects you've applied to join
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {applications.length === 0 ? (
-                    <div className="text-center py-6">
-                      <h3 className="text-lg font-medium mb-2">No applications yet</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Browse projects and apply to start collaborating
-                      </p>
-                      <Button asChild>
-                        <Link to="/projects">
-                          Browse Projects
-                        </Link>
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {applications.map((application) => (
-                        <div key={application.id} className="flex justify-between items-center border rounded-lg p-4">
-                          <div>
-                            <div className="font-medium mb-1">{application.project.title}</div>
-                            <div className="flex items-center gap-2">
-                              <Badge className={getStatusColor(application.status)}>
-                                {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                Applied on {formatDate(application.created_at)}
-                              </span>
-                            </div>
-                          </div>
-                          <Button variant="outline" size="sm" asChild>
-                            <Link to={`/projects/${application.project_id}`}>
-                              View Project
-                            </Link>
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <ProjectsListCard projects={projects} getStageColor={getStageColor} formatDate={formatDate} />
+              <ApplicationsListCard applications={applications} getStatusColor={getStatusColor} formatDate={formatDate} />
             </div>
             
             <div className="md:col-span-4 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profile Completion</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="w-full bg-muted rounded-full h-2.5">
-                      <div className="bg-primary h-2.5 rounded-full" style={{ width: "70%" }}></div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Your profile is 70% complete. Add more details to increase your chances of finding collaborators.
-                    </p>
-                    <Button variant="outline" asChild className="w-full">
-                      <Link to="/profile">Complete Your Profile</Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start" asChild>
-                    <Link to="/projects" className="flex items-center">
-                      <Rocket className="mr-2 h-4 w-4" />
-                      Browse Projects
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" asChild>
-                    <Link to="/discover" className="flex items-center">
-                      <Users className="mr-2 h-4 w-4" />
-                      Find Collaborators
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" asChild>
-                    <Link to="/resources" className="flex items-center">
-                      <BookOpen className="mr-2 h-4 w-4" />
-                      Learning Resources
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recommended Projects</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=project1" />
-                      <AvatarFallback>RP</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium">React Portfolio Builder</div>
-                      <div className="text-sm text-muted-foreground">Looking for UI/UX Designer</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=project2" />
-                      <AvatarFallback>AI</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium">AI Content Generator</div>
-                      <div className="text-sm text-muted-foreground">Needs Backend Developer</div>
-                    </div>
-                  </div>
-                  <Button variant="ghost" asChild className="w-full">
-                    <Link to="/projects" className="flex items-center justify-center">
-                      View More Projects
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              <ProfileCompletionCard />
+              <QuickActionsCard />
+              <RecommendedProjectsCard />
             </div>
           </div>
         )}
