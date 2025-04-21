@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,68 +25,102 @@ export interface Project {
   members?: ProjectMember[];
 }
 
+export interface ProjectApplication {
+  id: string;
+  message: string;
+  status: string;
+  created_at: string;
+  applicant: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+  };
+}
+
 export function useProjectView() {
   const { id } = useParams();
   const [project, setProject] = useState<Project | null>(null);
+  const [applications, setApplications] = useState<ProjectApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        setIsLoading(true);
-        if (!id) return;
-        const { data: projectData, error } = await supabase
-          .from("projects")
-          .select("*")
-          .eq("id", id)
-          .maybeSingle();
+  const fetchProjectAndApplications = async () => {
+    try {
+      setIsLoading(true);
+      if (!id) return;
+      
+      const { data: projectData, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
 
-        if (error || !projectData) {
-          throw error || new Error("No data");
+      if (error || !projectData) {
+        throw error || new Error("No data");
+      }
+
+      const { data: profileData } = await supabase
+        .from("profile_details")
+        .select("first_name, last_name, id")
+        .eq("id", projectData.creator_id)
+        .maybeSingle();
+
+      const projectWithDetails: Project = {
+        ...projectData,
+        members: profileData ? [
+          {
+            id: profileData.id,
+            name: `${profileData.first_name || ""} ${profileData.last_name || ""}`.trim() || "Anonymous User",
+            role: "Project Owner",
+          },
+        ] : [],
+      };
+
+      setProject(projectWithDetails);
+
+      if (user && user.id === projectData.creator_id) {
+        console.log("Fetching pending applications for project:", id);
+        const { data: applicationsData, error: applicationsError } = await supabase
+          .from("project_applications")
+          .select(`
+            id,
+            message,
+            status,
+            created_at,
+            applicant_id,
+            applicant:profile_details(id, first_name, last_name)
+          `)
+          .eq("project_id", id)
+          .eq("status", "pending");
+
+        if (applicationsError) {
+          console.error("Error fetching applications:", applicationsError);
+          throw applicationsError;
         }
 
-        const { data: profileData } = await supabase
-          .from("profile_details")
-          .select("first_name, last_name, id")
-          .eq("id", projectData.creator_id)
-          .maybeSingle();
-
-        const projectWithDetails: Project = {
-          ...projectData,
-          members: profileData
-            ? [
-                {
-                  id: profileData.id,
-                  name: `${profileData.first_name || ""} ${profileData.last_name || ""}`.trim() ||
-                    "Anonymous User",
-                  // never auto-create avatar image, only show fallback
-                  avatar: undefined,
-                  role: "Project Owner",
-                },
-              ]
-            : [],
-        };
-
-        setProject(projectWithDetails);
-      } catch (error) {
-        console.error("Error fetching project:", error);
-        setProject(null);
-        toast({
-          title: "Error",
-          description: "Failed to load project details",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
+        console.log("Found applications:", applicationsData);
+        setApplications(applicationsData || []);
       }
-    };
 
-    fetchProject();
-  }, [id, toast]);
+    } catch (error) {
+      console.error("Error fetching project:", error);
+      setProject(null);
+      toast({
+        title: "Error",
+        description: "Failed to load project details",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjectAndApplications();
+  }, [id, toast, user]);
 
   const isOwner = user && project ? user.id === project.creator_id : false;
 
-  return { id, project, setProject, isLoading, user, isOwner };
+  return { id, project, setProject, isLoading, user, isOwner, applications, refetch: fetchProjectAndApplications };
 }

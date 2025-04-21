@@ -1,3 +1,4 @@
+
 import Layout from "@/components/layout/Layout";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -9,9 +10,10 @@ import ProjectDetails from "@/components/project/ProjectDetails";
 import { Badge } from "@/components/ui/badge";
 import ProjectApplyButton from "@/components/project/ProjectApplyButton";
 import { useProjectView } from "@/hooks/useProjectView";
+import PendingApplications from "@/components/project/PendingApplications";
 
 export default function ProjectView() {
-  const { project, isLoading, user, isOwner } = useProjectView();
+  const { project, isLoading, user, isOwner, applications, refetch } = useProjectView();
 
   if (isLoading) return <ProjectViewLoading />;
   if (!project) return <ProjectNotFound />;
@@ -26,26 +28,33 @@ export default function ProjectView() {
               Back to Projects
             </span>
           </Link>
+          
           <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
             <div className="w-full md:w-auto">
-              <ProjectDetails project={project} />
+              <h1 className="text-3xl font-bold mb-2">{project.title}</h1>
             </div>
             {!isOwner && user && (
               <ProjectApplyButton project={project} user={user} />
             )}
             {isOwner && (
-              <Badge
-                variant="outline"
-                className="bg-primary/10 text-primary py-2 px-4"
-              >
+              <Badge variant="outline" className="bg-primary/10 text-primary py-2 px-4">
                 You are the owner of this project
               </Badge>
             )}
           </div>
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <ProjectDetails project={project} />
+            {isOwner && applications.length > 0 && (
+              <div className="mt-6">
+                <PendingApplications 
+                  applications={applications}
+                  onApplicationUpdate={refetch}
+                />
+              </div>
+            )}
           </div>
           <div>
             <ProjectTeam members={project.members} />
