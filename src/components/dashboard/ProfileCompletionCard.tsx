@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 
 const ProfileCompletionCard = () => {
   return (
-    <Card>
+    <Card className="bg-card text-card-foreground">
       <CardHeader>
         <CardTitle>Profile Completion</CardTitle>
       </CardHeader>

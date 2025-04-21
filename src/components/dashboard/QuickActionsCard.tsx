@@ -6,7 +6,7 @@ import { Rocket, Users, BookOpen } from "lucide-react";
 
 const QuickActionsCard = () => {
   return (
-    <Card>
+    <Card className="bg-card text-card-foreground">
       <CardHeader>
         <CardTitle>Quick Actions</CardTitle>
       </CardHeader>
