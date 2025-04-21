@@ -31,20 +31,49 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
     try {
       setProcessingIds(prev => new Set(prev).add(id));
       console.log("Accepting application:", id);
+      
+      const application = applications.find(app => app.id === id);
+      if (!application) {
+        console.error("Application not found:", id);
+        throw new Error("Application not found");
+      }
+      
       await updateApplicationStatus(id, "accepted");
+      console.log("Application status updated to accepted");
 
-      // Enable direct chat by triggering the edge function
-      await supabase.functions.invoke("notify-applicant", {
+      // Initialize direct chat by triggering the edge function
+      console.log("Calling project-chat-init function with:", {
+        applicationId: id,
+        projectOwnerId: userId,
+        applicantId: application.applicant_id
+      });
+      
+      const { data, error } = await supabase.functions.invoke("project-chat-init", {
         body: {
           applicationId: id,
-          status: "accepted",
-          enableChat: true
+          projectOwnerId: userId,
+          applicantId: application.applicant_id
         },
       });
+      
+      if (error) {
+        console.error("Error initializing chat:", error);
+        throw error;
+      }
+      
+      console.log("Chat initialization response:", data);
       
       toast({
         title: "Application Accepted",
         description: "The applicant has been notified and chat has been enabled",
+      });
+      
+      // Notify the applicant
+      await supabase.functions.invoke("notify-applicant", {
+        body: {
+          applicationId: id,
+          status: "accepted"
+        },
       });
       
       // Explicitly refetch applications after accepting
@@ -75,8 +104,7 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
       await supabase.functions.invoke("notify-applicant", {
         body: {
           applicationId: id,
-          status: "rejected",
-          enableChat: false
+          status: "rejected"
         },
       });
       

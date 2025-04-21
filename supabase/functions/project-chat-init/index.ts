@@ -20,9 +20,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
   
   try {
+    console.log("Project chat init function called");
     const { applicationId, projectOwnerId, applicantId } = await req.json();
     
     if (!applicationId || !projectOwnerId || !applicantId) {
+      console.error("Missing required parameters:", { applicationId, projectOwnerId, applicantId });
       return new Response(
         JSON.stringify({ error: "Missing required parameters" }),
         { 
@@ -31,6 +33,8 @@ const handler = async (req: Request): Promise<Response> => {
         }
       );
     }
+    
+    console.log("Processing chat init for application:", applicationId);
     
     // Get application details to confirm it's accepted
     const { data: application, error: appError } = await supabase
@@ -50,6 +54,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
     
+    console.log("Application status:", application.status);
+    
     if (application.status !== "accepted") {
       return new Response(
         JSON.stringify({ error: "Application is not accepted" }),
@@ -61,6 +67,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
     
     // Create initial welcome message in the chat
+    console.log("Creating welcome message for project:", application.project_id);
     const { data: message, error: messageError } = await supabase
       .from("project_chat_messages")
       .insert({
@@ -81,6 +88,8 @@ const handler = async (req: Request): Promise<Response> => {
         }
       );
     }
+    
+    console.log("Chat initialized successfully with message:", message);
     
     return new Response(
       JSON.stringify({ success: true, chatInitialized: true, message }),
