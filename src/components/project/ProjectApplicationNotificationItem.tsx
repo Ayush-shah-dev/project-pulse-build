@@ -10,6 +10,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 import type { ProjectApplication } from "@/hooks/useProjectNotifications";
 
 interface Props {
@@ -25,10 +26,27 @@ const ProjectApplicationNotificationItem = ({
   onReject,
   isProcessing = false
 }: Props) => {
+  const { toast } = useToast();
   const { project, applicant } = application;
   const applicantName = applicant.first_name && applicant.last_name
     ? `${applicant.first_name} ${applicant.last_name}`
     : "A user";
+
+  const handleAccept = () => {
+    toast({
+      title: "Processing...",
+      description: `Accepting application from ${applicantName}`,
+    });
+    onAccept();
+  };
+
+  const handleReject = () => {
+    toast({
+      title: "Processing...",
+      description: `Rejecting application from ${applicantName}`,
+    });
+    onReject();
+  };
 
   return (
     <Card>
@@ -60,7 +78,7 @@ const ProjectApplicationNotificationItem = ({
               variant="outline"
               size="sm"
               className="text-destructive border-destructive hover:bg-destructive/10"
-              onClick={onReject}
+              onClick={handleReject}
             >
               <XCircle className="h-4 w-4 mr-1" />
               Reject
@@ -68,7 +86,7 @@ const ProjectApplicationNotificationItem = ({
             <Button
               size="sm"
               className="bg-green-600 hover:bg-green-700"
-              onClick={onAccept}
+              onClick={handleAccept}
             >
               <CheckCircle className="h-4 w-4 mr-1" />
               Accept
