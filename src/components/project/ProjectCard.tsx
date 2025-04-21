@@ -1,10 +1,14 @@
-
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Calendar, MessageSquare, Users } from "lucide-react";
+import ProjectApplicationModal from "./ProjectApplicationModal";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProjectMember {
   id: string;
@@ -17,8 +21,8 @@ interface ProjectCardProps {
   title: string;
   description: string;
   tags: string[];
-  stage: string; // Changed from specific union type to string
-  members?: ProjectMember[]; // Made optional with ?
+  stage: string;
+  members?: ProjectMember[];
   rolesNeeded?: string[];
   matchScore?: number;
   updatedAt: string;
@@ -30,13 +34,12 @@ const ProjectCard = ({
   description,
   tags,
   stage,
-  members = [], // Default to empty array if undefined
+  members = [],
   rolesNeeded,
   matchScore,
   updatedAt
 }: ProjectCardProps) => {
   const getStageColor = () => {
-    // Convert stage to lowercase for case-insensitive comparison
     const normalizedStage = stage.toLowerCase();
     switch (normalizedStage) {
       case "idea":
@@ -59,6 +62,37 @@ const ProjectCard = ({
       day: "numeric",
       year: "numeric"
     });
+  };
+
+  const [showModal, setShowModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  const handleApply = async (answers: { why: string; experience: string; }) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from("project_applications").insert({
+        project_id: id,
+        applicant_id: user?.id,
+        message: `Why: ${answers.why}\nExperience: ${answers.experience}`,
+        status: "pending"
+      });
+      if (error) throw error;
+      toast({
+        title: "Application Submitted",
+        description: "Your application has been sent to the project owner.",
+        variant: "default",
+      });
+      setShowModal(false);
+    } catch (err) {
+      toast({
+        title: "Failed to Submit",
+        description: "There was an error submitting your application.",
+        variant: "destructive",
+      });
+    }
+    setIsSubmitting(false);
   };
 
   return (
@@ -133,6 +167,14 @@ const ProjectCard = ({
           <Link to={`/projects/${id}`}>View Project</Link>
         </Button>
         <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => setShowModal(true)}
+            className="h-8"
+            disabled={!user}
+          >
+            Apply to Project
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8">
             <MessageSquare className="h-4 w-4" />
           </Button>
@@ -140,10 +182,15 @@ const ProjectCard = ({
             <Users className="h-4 w-4" />
           </Button>
         </div>
+        <ProjectApplicationModal
+          open={showModal}
+          onOpenChange={setShowModal}
+          onSubmit={handleApply}
+          loading={isSubmitting}
+        />
       </CardFooter>
     </Card>
   );
 };
 
 export default ProjectCard;
-
