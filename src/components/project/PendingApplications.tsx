@@ -99,51 +99,57 @@ export default function PendingApplications({ applications, onApplicationUpdate 
         <CardTitle>Pending Applications ({applications.length})</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {applications.map((application) => (
-          <Card key={application.id}>
-            <CardContent className="pt-6">
-              <div className="flex justify-between items-start gap-4">
-                <div>
-                  <h3 className="font-medium">
-                    {application.applicant.first_name} {application.applicant.last_name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Applied {new Date(application.created_at).toLocaleDateString()}
-                  </p>
-                  <p className="mt-2">{application.message}</p>
-                </div>
-                <div className="flex gap-2">
-                  {processingIds.has(application.id) ? (
-                    <Button disabled>
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      Processing...
-                    </Button>
-                  ) : (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive border-destructive hover:bg-destructive/10"
-                        onClick={() => handleReject(application.id)}
-                      >
-                        <XCircle className="h-4 w-4 mr-1" />
-                        Reject
+        {applications.length === 0 ? (
+          <p className="text-center text-muted-foreground py-4">
+            No pending applications for this project.
+          </p>
+        ) : (
+          applications.map((application) => (
+            <Card key={application.id}>
+              <CardContent className="pt-6">
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <h3 className="font-medium">
+                      {application.applicant.first_name} {application.applicant.last_name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Applied {new Date(application.created_at).toLocaleDateString()}
+                    </p>
+                    <p className="mt-2">{application.message}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {processingIds.has(application.id) ? (
+                      <Button disabled>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Processing...
                       </Button>
-                      <Button
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={() => handleAccept(application.id, application.applicant.id)}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Accept
-                      </Button>
-                    </>
-                  )}
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive border-destructive hover:bg-destructive/10"
+                          onClick={() => handleReject(application.id)}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => handleAccept(application.id, application.applicant.id)}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Accept
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </CardContent>
     </Card>
   );

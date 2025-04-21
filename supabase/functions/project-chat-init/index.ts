@@ -21,10 +21,10 @@ const handler = async (req: Request): Promise<Response> => {
   
   try {
     console.log("Project chat init function called");
-    const { applicationId, projectOwnerId, applicantId } = await req.json();
+    const { applicationId, applicantId } = await req.json();
     
-    if (!applicationId || !projectOwnerId || !applicantId) {
-      console.error("Missing required parameters:", { applicationId, projectOwnerId, applicantId });
+    if (!applicationId || !applicantId) {
+      console.error("Missing required parameters:", { applicationId, applicantId });
       return new Response(
         JSON.stringify({ error: "Missing required parameters" }),
         { 
@@ -36,7 +36,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Processing chat init for application:", applicationId);
     
-    // Get application details to confirm it's accepted
+    // Get application details to get project info and confirm it's valid
     const { data: application, error: appError } = await supabase
       .from("project_applications")
       .select("status, project_id")
@@ -56,11 +56,19 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Application status:", application.status);
     
-    if (application.status !== "accepted") {
+    // Get the project creator ID to use as the sender of the welcome message
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("creator_id")
+      .eq("id", application.project_id)
+      .maybeSingle();
+      
+    if (projectError || !project) {
+      console.error("Error fetching project:", projectError);
       return new Response(
-        JSON.stringify({ error: "Application is not accepted" }),
+        JSON.stringify({ error: "Project not found" }),
         { 
-          status: 400, 
+          status: 404, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         }
       );
@@ -68,11 +76,13 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Create initial welcome message in the chat
     console.log("Creating welcome message for project:", application.project_id);
+    console.log("From project owner:", project.creator_id);
+    
     const { data: message, error: messageError } = await supabase
       .from("project_chat_messages")
       .insert({
         project_id: application.project_id,
-        sender_id: projectOwnerId,
+        sender_id: project.creator_id,
         content: "Welcome to the project! I've accepted your application. Let's discuss how you can contribute."
       })
       .select()
@@ -81,7 +91,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (messageError) {
       console.error("Error creating welcome message:", messageError);
       return new Response(
-        JSON.stringify({ error: "Failed to initialize chat" }),
+        JSON.stringify({ error: "Failed to initialize chat", details: messageError.message }),
         { 
           status: 500, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
