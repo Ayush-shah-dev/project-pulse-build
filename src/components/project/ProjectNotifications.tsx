@@ -14,9 +14,18 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
     applications,
     isLoading,
     updateApplicationStatus,
+    refetchApplications,
   } = useProjectNotifications(userId);
   const { toast } = useToast();
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+
+  // Add debug logs to see what's happening
+  console.log("ProjectNotifications rendering with:", { 
+    userId, 
+    applicationsCount: applications?.length || 0,
+    applications,
+    isLoading 
+  });
 
   const handleAccept = async (id: string) => {
     try {
@@ -36,6 +45,9 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
         title: "Application Accepted",
         description: "The applicant has been notified of your decision",
       });
+      
+      // Explicitly refetch applications after accepting
+      refetchApplications();
     } catch (err) {
       console.error("Error accepting application:", err);
       toast({
@@ -70,6 +82,9 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
         title: "Application Rejected",
         description: "The applicant has been notified of your decision",
       });
+      
+      // Explicitly refetch applications after rejecting
+      refetchApplications();
     } catch (err) {
       console.error("Error rejecting application:", err);
       toast({

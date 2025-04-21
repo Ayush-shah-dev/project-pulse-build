@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,7 +28,8 @@ export function useProjectNotifications(userId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchApplications = async () => {
+  // Define fetchApplications as a useCallback to allow it to be called from outside
+  const fetchApplications = useCallback(async () => {
     if (!userId) {
       console.log("No user ID provided for project notifications");
       setIsLoading(false);
@@ -144,7 +145,10 @@ export function useProjectNotifications(userId: string) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId, toast]);
+
+  // Export the fetchApplications function as refetchApplications
+  const refetchApplications = fetchApplications;
 
   useEffect(() => {
     // Initial fetch
@@ -172,7 +176,7 @@ export function useProjectNotifications(userId: string) {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, fetchApplications]);
 
   const updateApplicationStatus = async (
     applicationId: string,
@@ -203,5 +207,5 @@ export function useProjectNotifications(userId: string) {
     }
   };
 
-  return { applications, isLoading, updateApplicationStatus };
+  return { applications, isLoading, updateApplicationStatus, refetchApplications };
 }
