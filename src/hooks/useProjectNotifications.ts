@@ -30,19 +30,35 @@ export function useProjectNotifications(userId: string) {
 
   useEffect(() => {
     const fetchApplications = async () => {
+      if (!userId) {
+        console.log("No user ID provided for project notifications");
+        setIsLoading(false);
+        return;
+      }
+      
       setIsLoading(true);
+      console.log("Fetching applications for user ID:", userId);
+      
       try {
+        // Get all projects created by this user
         const { data: projects, error: projectsError } = await supabase
           .from("projects")
-          .select("id")
+          .select("id, title")
           .eq("creator_id", userId);
 
-        if (projectsError) throw projectsError;
+        if (projectsError) {
+          console.error("Error fetching user projects:", projectsError);
+          throw projectsError;
+        }
+
+        console.log(`Found ${projects?.length || 0} projects for this user`);
 
         if (projects && projects.length > 0) {
           const projectIds = projects.map((project) => project.id);
+          console.log("Project IDs to check for applications:", projectIds);
 
-          const { data, error } = await supabase
+          // Get applications for all user's projects with status "pending"
+          const { data: applications, error } = await supabase
             .from("project_applications")
             .select(`
               id, 
@@ -51,46 +67,41 @@ export function useProjectNotifications(userId: string) {
               message, 
               status, 
               created_at,
-              updated_at
+              updated_at,
+              project:project_id (
+                title
+              ),
+              applicant:applicant_id (
+                id,
+                first_name,
+                last_name
+              )
             `)
             .in("project_id", projectIds)
-            .eq("status", "pending")
-            .order("created_at", { ascending: false });
+            .eq("status", "pending");
 
-          if (error) throw error;
+          if (error) {
+            console.error("Error fetching project applications:", error);
+            throw error;
+          }
 
-          if (data && data.length > 0) {
-            const completeApplications: ProjectApplication[] = [];
-            for (const app of data) {
-              const { data: projectData, error: projectError } = await supabase
-                .from("projects")
-                .select("title")
-                .eq("id", app.project_id)
-                .single();
-              if (projectError) continue;
-              const { data: applicantData, error: applicantError } = await supabase
-                .from("profile_details")
-                .select("id, first_name, last_name")
-                .eq("id", app.applicant_id)
-                .single();
-              if (applicantError) continue;
-              completeApplications.push({
-                ...app,
-                project: { title: projectData.title },
-                applicant: applicantData
-              });
-            }
-            setApplications(completeApplications);
+          console.log(`Found ${applications?.length || 0} pending applications`, applications);
+          
+          if (applications && applications.length > 0) {
+            setApplications(applications);
           } else {
+            console.log("No pending applications found");
             setApplications([]);
           }
         } else {
+          console.log("User has no projects");
           setApplications([]);
         }
       } catch (error) {
+        console.error("Failed to load project notifications:", error);
         toast({
           title: "Error",
-          description: "Failed to load application notifications",
+          description: "Failed to load application notifications. Please try refreshing the page.",
           variant: "destructive",
         });
       } finally {
@@ -98,21 +109,48 @@ export function useProjectNotifications(userId: string) {
       }
     };
 
-    if (userId) fetchApplications();
+    fetchApplications();
+    
+    // Set up real-time listener for new applications
+    const channel = supabase
+      .channel('project_applications_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'project_applications',
+        },
+        (payload) => {
+          console.log('New application received:', payload);
+          fetchApplications(); // Refresh the applications when a new one comes in
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId, toast]);
 
   const updateApplicationStatus = async (
     applicationId: string,
     status: string
   ) => {
+    console.log(`Updating application ${applicationId} to status: ${status}`);
+    
     try {
       const { error } = await supabase
         .from("project_applications")
         .update({ status })
         .eq("id", applicationId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating application status:", error);
+        throw error;
+      }
 
+      // Remove the application from the list after update
       setApplications((prev) =>
         prev.filter((application) => application.id !== applicationId)
       );
@@ -125,9 +163,10 @@ export function useProjectNotifications(userId: string) {
             : "The applicant will be notified of your decision",
       });
     } catch (error) {
+      console.error("Failed to update application status:", error);
       toast({
         title: "Error",
-        description: "Failed to update application status",
+        description: "Failed to update application status. Please try again.",
         variant: "destructive",
       });
     }

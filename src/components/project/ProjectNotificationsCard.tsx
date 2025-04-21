@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Loader2 } from "lucide-react";
+import { Bell, Loader2, Mail } from "lucide-react";
 import ProjectApplicationNotificationItem from "./ProjectApplicationNotificationItem";
 import type { ProjectApplication } from "@/hooks/useProjectNotifications";
 
@@ -34,7 +34,27 @@ const ProjectNotificationsCard = ({
     );
   }
 
-  if (applications.length === 0) return null;
+  // Don't return null - instead show a message that there are no notifications
+  // This helps diagnose whether the component is rendering at all
+  if (applications.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Bell className="mr-2 h-5 w-5" />
+            Project Applications
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-6 text-muted-foreground">
+          <Mail className="h-10 w-10 mx-auto mb-3 opacity-50" />
+          <p>No pending applications for your projects</p>
+          <p className="text-sm mt-1">
+            When someone applies to join your projects, you'll see them here
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

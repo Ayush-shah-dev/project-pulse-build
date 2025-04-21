@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle, XCircle } from "lucide-react";
 import type { ProjectApplication } from "@/hooks/useProjectNotifications";
+import { useState } from "react";
 
 interface Props {
   application: ProjectApplication;
-  onAccept: (applicationId: string) => void;
-  onReject: (applicationId: string) => void;
+  onAccept: () => void;
+  onReject: () => void;
 }
 
 const ProjectApplicationNotificationItem = ({
@@ -16,9 +17,29 @@ const ProjectApplicationNotificationItem = ({
   onAccept,
   onReject,
 }: Props) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  
   const applicantName =
     `${application.applicant.first_name || ""} ${application.applicant.last_name || ""}`.trim() ||
     "Anonymous User";
+  
+  const handleAccept = async () => {
+    setIsProcessing(true);
+    try {
+      await onAccept();
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  const handleReject = async () => {
+    setIsProcessing(true);
+    try {
+      await onReject();
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="border-b pb-4 last:border-b-0 last:pb-0">
@@ -49,7 +70,8 @@ const ProjectApplicationNotificationItem = ({
             size="sm"
             variant="outline"
             className="h-8 w-8 p-0 text-green-600"
-            onClick={() => onAccept(application.id)}
+            onClick={handleAccept}
+            disabled={isProcessing}
           >
             <CheckCircle className="h-4 w-4" />
           </Button>
@@ -57,7 +79,8 @@ const ProjectApplicationNotificationItem = ({
             size="sm"
             variant="outline"
             className="h-8 w-8 p-0 text-red-600"
-            onClick={() => onReject(application.id)}
+            onClick={handleReject}
+            disabled={isProcessing}
           >
             <XCircle className="h-4 w-4" />
           </Button>
