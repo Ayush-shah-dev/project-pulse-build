@@ -22,6 +22,8 @@ const ProjectApplicationNotificationItem = ({
   const applicantName =
     `${application.applicant.first_name || ""} ${application.applicant.last_name || ""}`.trim() ||
     "Anonymous User";
+    
+  console.log("Rendering application item:", application);
   
   const handleAccept = async () => {
     setIsProcessing(true);
@@ -40,6 +42,12 @@ const ProjectApplicationNotificationItem = ({
       setIsProcessing(false);
     }
   };
+
+  const formattedDate = new Date(application.created_at).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
 
   return (
     <div className="border-b pb-4 last:border-b-0 last:pb-0">
@@ -62,6 +70,7 @@ const ProjectApplicationNotificationItem = ({
               >
                 {application.project.title}
               </Link>
+              <span className="ml-1">on {formattedDate}</span>
             </div>
           </div>
         </div>
@@ -69,18 +78,20 @@ const ProjectApplicationNotificationItem = ({
           <Button
             size="sm"
             variant="outline"
-            className="h-8 w-8 p-0 text-green-600"
+            className="h-8 w-8 p-0 text-green-600 hover:bg-green-50 hover:text-green-700"
             onClick={handleAccept}
             disabled={isProcessing}
+            title="Accept Application"
           >
             <CheckCircle className="h-4 w-4" />
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className="h-8 w-8 p-0 text-red-600"
+            className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
             onClick={handleReject}
             disabled={isProcessing}
+            title="Reject Application"
           >
             <XCircle className="h-4 w-4" />
           </Button>

@@ -28,131 +28,136 @@ export function useProjectNotifications(userId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchApplications = async () => {
-      if (!userId) {
-        console.log("No user ID provided for project notifications");
-        setIsLoading(false);
-        return;
-      }
-      
-      setIsLoading(true);
-      console.log("Fetching applications for user ID:", userId);
-      
-      try {
-        // Get all projects created by this user
-        const { data: projects, error: projectsError } = await supabase
-          .from("projects")
-          .select("id, title")
-          .eq("creator_id", userId);
+  const fetchApplications = async () => {
+    if (!userId) {
+      console.log("No user ID provided for project notifications");
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+    console.log("Fetching applications for user ID:", userId);
+    
+    try {
+      // Get all projects created by this user
+      const { data: projects, error: projectsError } = await supabase
+        .from("projects")
+        .select("id, title")
+        .eq("creator_id", userId);
 
-        if (projectsError) {
-          console.error("Error fetching user projects:", projectsError);
-          throw projectsError;
+      if (projectsError) {
+        console.error("Error fetching user projects:", projectsError);
+        throw projectsError;
+      }
+
+      console.log(`Found ${projects?.length || 0} projects for this user:`, projects);
+
+      if (projects && projects.length > 0) {
+        const projectIds = projects.map((project) => project.id);
+        console.log("Project IDs to check for applications:", projectIds);
+
+        // Get applications for all user's projects with status "pending"
+        const { data: appData, error } = await supabase
+          .from("project_applications")
+          .select(`
+            id, 
+            project_id, 
+            applicant_id, 
+            message, 
+            status, 
+            created_at,
+            updated_at
+          `)
+          .in("project_id", projectIds)
+          .eq("status", "pending");
+
+        if (error) {
+          console.error("Error fetching project applications:", error);
+          throw error;
         }
 
-        console.log(`Found ${projects?.length || 0} projects for this user`);
-
-        if (projects && projects.length > 0) {
-          const projectIds = projects.map((project) => project.id);
-          console.log("Project IDs to check for applications:", projectIds);
-
-          // Get applications for all user's projects with status "pending"
-          // Important: We're now joining the data in a different way
-          const { data: appData, error } = await supabase
-            .from("project_applications")
-            .select(`
-              id, 
-              project_id, 
-              applicant_id, 
-              message, 
-              status, 
-              created_at,
-              updated_at
-            `)
-            .in("project_id", projectIds)
-            .eq("status", "pending");
-
-          if (error) {
-            console.error("Error fetching project applications:", error);
-            throw error;
-          }
-
-          console.log(`Found ${appData?.length || 0} pending applications`);
+        console.log(`Found ${appData?.length || 0} pending applications:`, appData);
+        
+        if (appData && appData.length > 0) {
+          // Now we need to fetch project titles and applicant details separately
+          const enhancedApplications: ProjectApplication[] = [];
           
-          if (appData && appData.length > 0) {
-            // Now we need to fetch project titles and applicant details separately
-            const enhancedApplications: ProjectApplication[] = [];
-            
-            for (const app of appData) {
-              // Get the project title
-              const { data: projectData } = await supabase
-                .from("projects")
-                .select("title")
-                .eq("id", app.project_id)
-                .single();
-                
-              // Get the applicant details
-              const { data: applicantData } = await supabase
-                .from("profile_details")
-                .select("id, first_name, last_name")
-                .eq("id", app.applicant_id)
-                .single();
-                
-              enhancedApplications.push({
-                ...app,
-                project: {
-                  title: projectData?.title || "Unknown Project"
-                },
-                applicant: {
-                  id: app.applicant_id,
-                  first_name: applicantData?.first_name || null,
-                  last_name: applicantData?.last_name || null
-                }
-              });
-            }
-            
-            setApplications(enhancedApplications);
-          } else {
-            console.log("No pending applications found");
-            setApplications([]);
+          for (const app of appData) {
+            // Get the project title
+            const { data: projectData } = await supabase
+              .from("projects")
+              .select("title")
+              .eq("id", app.project_id)
+              .single();
+              
+            // Get the applicant details
+            const { data: applicantData } = await supabase
+              .from("profile_details")
+              .select("id, first_name, last_name")
+              .eq("id", app.applicant_id)
+              .single();
+              
+            enhancedApplications.push({
+              ...app,
+              project: {
+                title: projectData?.title || "Unknown Project"
+              },
+              applicant: {
+                id: app.applicant_id,
+                first_name: applicantData?.first_name || null,
+                last_name: applicantData?.last_name || null
+              }
+            });
           }
+          
+          console.log("Enhanced applications:", enhancedApplications);
+          setApplications(enhancedApplications);
         } else {
-          console.log("User has no projects");
+          console.log("No pending applications found");
           setApplications([]);
         }
-      } catch (error) {
-        console.error("Failed to load project notifications:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load application notifications. Please try refreshing the page.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
+      } else {
+        console.log("User has no projects");
+        setApplications([]);
       }
-    };
+    } catch (error) {
+      console.error("Failed to load project notifications:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load application notifications. Please try refreshing the page.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
+    // Initial fetch
     fetchApplications();
     
-    // Set up real-time listener for new applications
+    // Set up real-time listener for changes in project_applications table
     const channel = supabase
-      .channel('project_applications_changes')
+      .channel('project_applications_channel')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'project_applications',
         },
         (payload) => {
-          console.log('New application received:', payload);
-          fetchApplications(); // Refresh the applications when a new one comes in
+          console.log('Project application change detected:', payload);
+          // Refresh the applications when any change occurs
+          fetchApplications();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
       
     return () => {
+      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [userId, toast]);
@@ -166,7 +171,7 @@ export function useProjectNotifications(userId: string) {
     try {
       const { error } = await supabase
         .from("project_applications")
-        .update({ status })
+        .update({ status, updated_at: new Date().toISOString() })
         .eq("id", applicationId);
 
       if (error) {
