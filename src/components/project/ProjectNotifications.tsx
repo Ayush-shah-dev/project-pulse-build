@@ -42,18 +42,25 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
     const fetchApplications = async () => {
       setIsLoading(true);
       try {
+        console.log("Fetching projects for user ID:", userId);
         // Fetch applications for projects where the current user is the creator
         const { data: projects, error: projectsError } = await supabase
           .from("projects")
           .select("id")
           .eq("creator_id", userId);
 
-        if (projectsError) throw projectsError;
+        if (projectsError) {
+          console.error("Error fetching projects:", projectsError);
+          throw projectsError;
+        }
+        
+        console.log("Found projects:", projects);
         
         if (projects && projects.length > 0) {
           const projectIds = projects.map(project => project.id);
+          console.log("Project IDs to check for applications:", projectIds);
           
-          // Using explicit join syntax instead of nested select
+          // First, fetch the basic application data
           const { data, error } = await supabase
             .from("project_applications")
             .select(`
@@ -69,7 +76,12 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
             .eq("status", "pending")
             .order("created_at", { ascending: false });
 
-          if (error) throw error;
+          if (error) {
+            console.error("Error fetching applications:", error);
+            throw error;
+          }
+          
+          console.log("Found applications:", data);
           
           // If we have applications, fetch the related data separately
           if (data && data.length > 0) {
@@ -78,6 +90,8 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
             
             // Process each application
             for (const app of data) {
+              console.log("Processing application:", app.id);
+              
               // Fetch project info
               const { data: projectData, error: projectError } = await supabase
                 .from("projects")
@@ -102,6 +116,9 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
                 continue;
               }
               
+              console.log("Project data:", projectData);
+              console.log("Applicant data:", applicantData);
+              
               // Add to complete applications
               completeApplications.push({
                 ...app,
@@ -110,10 +127,15 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
               });
             }
             
+            console.log("Setting applications:", completeApplications);
             setApplications(completeApplications);
           } else {
+            console.log("No pending applications found");
             setApplications([]);
           }
+        } else {
+          console.log("No projects found for this user");
+          setApplications([]);
         }
       } catch (error) {
         console.error("Error fetching applications:", error);
