@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,6 +82,8 @@ export function useProjectView() {
 
       if (user && user.id === projectData.creator_id) {
         console.log("Fetching pending applications for project:", id);
+        
+        // First, fetch the basic application data
         const { data: applicationsData, error: applicationsError } = await supabase
           .from("project_applications")
           .select(`
@@ -88,8 +91,7 @@ export function useProjectView() {
             message,
             status,
             created_at,
-            applicant_id,
-            applicant:profile_details(id, first_name, last_name)
+            applicant_id
           `)
           .eq("project_id", id)
           .eq("status", "pending");
@@ -100,7 +102,69 @@ export function useProjectView() {
         }
 
         console.log("Found applications:", applicationsData);
-        setApplications(applicationsData || []);
+        
+        if (!applicationsData || applicationsData.length === 0) {
+          setApplications([]);
+        } else {
+          // Process each application to get applicant details separately
+          const enhancedApplications = await Promise.all(
+            applicationsData.map(async (app) => {
+              try {
+                // Fetch applicant details for each application
+                const { data: applicantData, error: applicantError } = await supabase
+                  .from("profile_details")
+                  .select("id, first_name, last_name")
+                  .eq("id", app.applicant_id)
+                  .maybeSingle();
+
+                if (applicantError) {
+                  console.error(`Error fetching applicant for ${app.applicant_id}:`, applicantError);
+                  // Provide default values if there's an error
+                  return {
+                    id: app.id,
+                    message: app.message || "",
+                    status: app.status,
+                    created_at: app.created_at || "",
+                    applicant: {
+                      id: app.applicant_id,
+                      first_name: null,
+                      last_name: null
+                    }
+                  };
+                }
+
+                // Return properly formatted application with applicant data
+                return {
+                  id: app.id,
+                  message: app.message || "",
+                  status: app.status,
+                  created_at: app.created_at || "",
+                  applicant: {
+                    id: app.applicant_id,
+                    first_name: applicantData?.first_name || null,
+                    last_name: applicantData?.last_name || null
+                  }
+                };
+              } catch (error) {
+                console.error(`Error processing application ${app.id}:`, error);
+                // Provide default values if there's an exception
+                return {
+                  id: app.id,
+                  message: app.message || "",
+                  status: app.status,
+                  created_at: app.created_at || "",
+                  applicant: {
+                    id: app.applicant_id,
+                    first_name: null,
+                    last_name: null
+                  }
+                };
+              }
+            })
+          );
+          
+          setApplications(enhancedApplications);
+        }
       }
 
     } catch (error) {
