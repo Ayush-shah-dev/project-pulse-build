@@ -1,10 +1,10 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Users } from "lucide-react";
-import ProjectApplicationModal from "@/components/project/ProjectApplicationModal";
+import { Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import DirectMessageModal from "./DirectMessageModal";
 import type { Project } from "@/hooks/useProjectView";
 
 interface ProjectApplyButtonProps {
@@ -22,90 +22,32 @@ export default function ProjectApplyButton({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleApply = async (answers: { why: string; experience: string }) => {
+  const handleSendMessage = async (message: string) => {
     if (!project || !user) return;
     setIsSubmitting(true);
     
     try {
-      // Step 1: Insert the application into the database
-      const { data: applicationData, error } = await supabase
-        .from("project_applications")
+      // Send a chat message directly
+      const { error: messageError } = await supabase
+        .from('project_chat_messages')
         .insert({
           project_id: project.id,
-          applicant_id: user.id,
-          message: `Why: ${answers.why}\nExperience: ${answers.experience}`,
-          status: "pending",
-        })
-        .select()
-        .single();
+          sender_id: user.id,
+          content: message
+        });
 
-      if (error) throw error;
-      
-      console.log("Application submitted:", applicationData);
-      
-      // Step 2: Get the project owner's details
-      const { data: projectOwner } = await supabase
-        .from("profile_details")
-        .select("id, first_name, last_name")
-        .eq("id", project.creator_id)
-        .maybeSingle();
-        
-      const { data: ownerEmail } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("id", project.creator_id)
-        .maybeSingle();
-      
-      if (!ownerEmail?.email) {
-        console.error("Could not find project owner's email");
-        throw new Error("Could not find project owner's email");
-      }
-      
-      // Step 3: Get the applicant details
-      const { data: applicantProfile } = await supabase
-        .from("profile_details")
-        .select("first_name, last_name")
-        .eq("id", user.id)
-        .maybeSingle();
-      
-      const applicantName = applicantProfile 
-        ? `${applicantProfile.first_name || ""} ${applicantProfile.last_name || ""}`.trim() 
-        : "A user";
-        
-      const ownerName = projectOwner 
-        ? `${projectOwner.first_name || ""} ${projectOwner.last_name || ""}`.trim() 
-        : "";
-      
-      // Step 4: Trigger the email notification
-      const baseUrl = window.location.origin;
-      console.log("Base URL for email links:", baseUrl);
-      
-      const emailResponse = await supabase.functions.invoke("send-project-application-email", {
-        body: {
-          applicantName,
-          applicantEmail: user.email,
-          projectId: project.id,
-          projectTitle: project.title,
-          applicationId: applicationData.id,
-          ownerEmail: ownerEmail.email,
-          ownerName,
-          baseUrl,
-        },
-      });
-      
-      console.log("Email notification response:", emailResponse);
+      if (messageError) throw messageError;
       
       toast({
-        title: "Application Submitted",
-        description: "Your application has been sent to the project owner.",
-        variant: "default",
+        title: "Message Sent",
+        description: "Your message has been sent to the project owner.",
       });
       setShowModal(false);
     } catch (err) {
-      console.error("Application submission error:", err);
+      console.error("Error sending message:", err);
       toast({
-        title: "Failed to Submit",
-        description: "There was an error submitting your application. Please try again.",
+        title: "Failed to Send",
+        description: "There was an error sending your message. Please try again.",
         variant: "destructive",
       });
     }
@@ -119,13 +61,13 @@ export default function ProjectApplyButton({
         className="flex items-center gap-2"
         disabled={disabled}
       >
-        <Users className="h-4 w-4" />
-        Apply to Project
+        <Mail className="h-4 w-4" />
+        Contact Project Owner
       </Button>
-      <ProjectApplicationModal
+      <DirectMessageModal
         open={showModal}
         onOpenChange={setShowModal}
-        onSubmit={handleApply}
+        onSubmit={handleSendMessage}
         loading={isSubmitting}
       />
     </>
