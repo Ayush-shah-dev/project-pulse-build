@@ -67,7 +67,15 @@ export function useProjectNotifications(userId: string) {
       // Get pending applications for projects that this user CREATED
       const { data: pendingApplications, error: applicationsError } = await supabase
         .from("project_applications")
-        .select("*")
+        .select(`
+          id,
+          project_id,
+          applicant_id,
+          message,
+          status,
+          created_at,
+          updated_at
+        `)
         .in("project_id", projectIds)
         .eq("status", "pending");
 

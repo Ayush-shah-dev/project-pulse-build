@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { MessageSquare } from "lucide-react";
 
 interface Application {
   id: string;
@@ -59,11 +60,19 @@ const ApplicationsListCard = ({
                     </span>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to={`/projects/${application.project_id}`}>
-                    View Project
-                  </Link>
-                </Button>
+                <div className="flex gap-2">
+                  {application.status === "accepted" && (
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                      <MessageSquare className="h-4 w-4 mr-1" />
+                      Chat
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/projects/${application.project_id}`}>
+                      View Project
+                    </Link>
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
