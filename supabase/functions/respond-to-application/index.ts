@@ -93,11 +93,32 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // If accepted, initialize chat
+    if (newStatus === "accepted") {
+      try {
+        // Initialize chat with welcome message
+        await supabase.functions.invoke("project-chat-init", {
+          body: { 
+            applicationId, 
+            projectOwnerId: application.project.creator_id,
+            applicantId: application.applicant_id
+          }
+        });
+      } catch (chatError) {
+        console.error("Error initializing chat:", chatError);
+        // Don't fail the whole operation if chat init fails
+      }
+    }
+
     // Respond with a simple message page
     const successMessage =
       newStatus === "accepted"
         ? "You have accepted the application."
         : "You have rejected the application.";
+
+    const chatMessage = newStatus === "accepted" 
+      ? "A direct chat has been initialized between you and the applicant."
+      : "";
 
     const html = `
       <!DOCTYPE html>
@@ -154,6 +175,7 @@ const handler = async (req: Request): Promise<Response> => {
           <div class="icon">${newStatus === "accepted" ? "✅" : "❌"}</div>
           <h1>${successMessage}</h1>
           <p>You have ${newStatus === "accepted" ? "accepted" : "rejected"} the application for project "${application.project.title}".</p>
+          ${chatMessage ? `<p>${chatMessage}</p>` : ''}
           <p>The applicant will be notified of your decision.</p>
           <p>Thank you for your response.</p>
           <a href="${SUPABASE_URL.replace('.supabase.co', '.lovable.app')}/dashboard" class="button">Go to Dashboard</a>

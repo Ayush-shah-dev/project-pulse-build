@@ -33,17 +33,18 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
       console.log("Accepting application:", id);
       await updateApplicationStatus(id, "accepted");
 
-      // Notify the applicant via email
+      // Enable direct chat by triggering the edge function
       await supabase.functions.invoke("notify-applicant", {
         body: {
           applicationId: id,
-          status: "accepted"
+          status: "accepted",
+          enableChat: true
         },
       });
       
       toast({
         title: "Application Accepted",
-        description: "The applicant has been notified of your decision",
+        description: "The applicant has been notified and chat has been enabled",
       });
       
       // Explicitly refetch applications after accepting
@@ -74,7 +75,8 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
       await supabase.functions.invoke("notify-applicant", {
         body: {
           applicationId: id,
-          status: "rejected"
+          status: "rejected",
+          enableChat: false
         },
       });
       
