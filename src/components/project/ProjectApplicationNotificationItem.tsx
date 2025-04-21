@@ -19,10 +19,19 @@ const ProjectApplicationNotificationItem = ({
 }: Props) => {
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Get applicant name, providing a fallback for incomplete profiles
-  const firstName = application.applicant.first_name || "Anonymous";
-  const lastName = application.applicant.last_name || "User";
-  const applicantName = `${firstName} ${lastName}`.trim();
+  // Get applicant name, providing appropriate fallbacks
+  const hasFirstName = Boolean(application.applicant.first_name);
+  const hasLastName = Boolean(application.applicant.last_name);
+  const hasCompleteName = hasFirstName && hasLastName;
+  
+  let applicantName = "Anonymous User";
+  if (hasCompleteName) {
+    applicantName = `${application.applicant.first_name} ${application.applicant.last_name}`;
+  } else if (hasFirstName) {
+    applicantName = `${application.applicant.first_name}`;
+  } else if (hasLastName) {
+    applicantName = `${application.applicant.last_name}`;
+  }
     
   console.log("Rendering application item:", application);
   
@@ -50,6 +59,17 @@ const ProjectApplicationNotificationItem = ({
     year: 'numeric'
   });
 
+  // Get initials for avatar fallback
+  const getInitials = () => {
+    if (hasFirstName && application.applicant.first_name) {
+      return application.applicant.first_name.charAt(0).toUpperCase();
+    }
+    if (hasLastName && application.applicant.last_name) {
+      return application.applicant.last_name.charAt(0).toUpperCase();
+    }
+    return "A"; // Default for Anonymous
+  };
+
   return (
     <div className="border-b pb-4 last:border-b-0 last:pb-0">
       <div className="flex items-start justify-between mb-2">
@@ -59,12 +79,12 @@ const ProjectApplicationNotificationItem = ({
               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${application.applicant.id}`}
               alt={applicantName}
             />
-            <AvatarFallback>{applicantName.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{getInitials()}</AvatarFallback>
           </Avatar>
           <div>
             <div className="font-medium">
               {applicantName}
-              {(!application.applicant.first_name || !application.applicant.last_name) && (
+              {!hasCompleteName && (
                 <span className="text-xs text-amber-500 ml-2 font-normal">
                   (Incomplete Profile)
                 </span>

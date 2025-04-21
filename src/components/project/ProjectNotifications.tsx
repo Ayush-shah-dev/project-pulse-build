@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useProjectNotifications } from "@/hooks/useProjectNotifications";
 import { useToast } from "@/hooks/use-toast";
 import ProjectNotificationsCard from "./ProjectNotificationsCard";
@@ -9,23 +9,12 @@ interface ProjectNotificationsProps {
 }
 
 const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
-  const [error, setError] = useState<string | null>(null);
   const {
     applications,
     isLoading,
     updateApplicationStatus,
   } = useProjectNotifications(userId);
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Add diagnostic logging
-    console.log("ProjectNotifications rendered with userId:", userId);
-    console.log("Current applications:", applications);
-    
-    if (applications.length === 0 && !isLoading) {
-      console.log("No applications found for user projects");
-    }
-  }, [userId, applications, isLoading]);
 
   const handleAccept = async (id: string) => {
     try {
@@ -37,7 +26,6 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
       });
     } catch (err) {
       console.error("Error accepting application:", err);
-      setError("Failed to accept application. Please try again.");
       toast({
         title: "Error",
         description: "Failed to accept application. Please try again.",
@@ -56,7 +44,6 @@ const ProjectNotifications = ({ userId }: ProjectNotificationsProps) => {
       });
     } catch (err) {
       console.error("Error rejecting application:", err);
-      setError("Failed to reject application. Please try again.");
       toast({
         title: "Error",
         description: "Failed to reject application. Please try again.",

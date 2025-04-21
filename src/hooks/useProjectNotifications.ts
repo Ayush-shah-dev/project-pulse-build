@@ -39,31 +39,31 @@ export function useProjectNotifications(userId: string) {
     console.log("Fetching applications for user ID:", userId);
     
     try {
-      // Get all projects created by this user
+      // First, get all projects CREATED by this user (not applied to)
       const { data: userProjects, error: projectsError } = await supabase
         .from("projects")
         .select("id, title")
         .eq("creator_id", userId);
 
       if (projectsError) {
-        console.error("Error fetching user projects:", projectsError);
+        console.error("Error fetching user created projects:", projectsError);
         throw projectsError;
       }
 
-      console.log(`Found ${userProjects?.length || 0} projects for this user:`, userProjects);
+      console.log(`Found ${userProjects?.length || 0} projects created by this user:`, userProjects);
 
       if (!userProjects || userProjects.length === 0) {
-        console.log("User has no projects");
+        console.log("User has not created any projects");
         setApplications([]);
         setIsLoading(false);
         return;
       }
 
-      // Get project IDs
+      // Get project IDs that the user has created
       const projectIds = userProjects.map(project => project.id);
       console.log("Project IDs to check for applications:", projectIds);
 
-      // Get applications for all user's projects with status "pending"
+      // Get pending applications for projects that this user CREATED
       const { data: pendingApplications, error: applicationsError } = await supabase
         .from("project_applications")
         .select("*")
@@ -71,7 +71,7 @@ export function useProjectNotifications(userId: string) {
         .eq("status", "pending");
 
       if (applicationsError) {
-        console.error("Error fetching project applications:", applicationsError);
+        console.error("Error fetching pending applications:", applicationsError);
         throw applicationsError;
       }
 
@@ -84,44 +84,53 @@ export function useProjectNotifications(userId: string) {
       }
 
       // Create a map of project IDs to project titles for efficient lookup
-      const projectMap = Object.fromEntries(
+      const projectTitlesMap = Object.fromEntries(
         userProjects.map(project => [project.id, project.title])
       );
       
       // Process applications and fetch applicant details
-      const enhancedApplications: ProjectApplication[] = [];
-      
-      for (const app of pendingApplications) {
-        try {
-          // Get applicant details
-          const { data: applicantData, error: applicantError } = await supabase
-            .from("profile_details")
-            .select("id, first_name, last_name")
-            .eq("id", app.applicant_id)
-            .maybeSingle(); // Using maybeSingle instead of single to handle cases where profile doesn't exist
-            
-          if (applicantError) {
-            console.error(`Error fetching applicant details for ${app.applicant_id}:`, applicantError);
-            // Continue processing other applications even if we can't get this one's applicant details
-            continue;
-          }
-          
-          // Create a valid application object with default values for missing profile information
-          enhancedApplications.push({
-            ...app,
-            project: {
-              title: projectMap[app.project_id] || "Unknown Project"
-            },
-            applicant: {
-              id: app.applicant_id,
-              first_name: applicantData?.first_name || "Anonymous",
-              last_name: applicantData?.last_name || "User"
+      const enhancedApplications = await Promise.all(
+        pendingApplications.map(async (app) => {
+          try {
+            // Get applicant profile details
+            const { data: profileData, error: profileError } = await supabase
+              .from("profile_details")
+              .select("first_name, last_name")
+              .eq("id", app.applicant_id)
+              .maybeSingle();
+              
+            if (profileError) {
+              console.error(`Error fetching profile for ${app.applicant_id}:`, profileError);
             }
-          });
-        } catch (error) {
-          console.error(`Error processing application ${app.id}:`, error);
-        }
-      }
+            
+            return {
+              ...app,
+              project: {
+                title: projectTitlesMap[app.project_id] || "Unknown Project"
+              },
+              applicant: {
+                id: app.applicant_id,
+                first_name: profileData?.first_name || null,
+                last_name: profileData?.last_name || null
+              }
+            };
+          } catch (error) {
+            console.error(`Error processing application ${app.id}:`, error);
+            // Return a valid application object even if there's an error
+            return {
+              ...app,
+              project: {
+                title: projectTitlesMap[app.project_id] || "Unknown Project"
+              },
+              applicant: {
+                id: app.applicant_id,
+                first_name: null,
+                last_name: null
+              }
+            };
+          }
+        })
+      );
       
       console.log("Enhanced applications:", enhancedApplications);
       setApplications(enhancedApplications);
@@ -143,7 +152,7 @@ export function useProjectNotifications(userId: string) {
     
     // Set up real-time listener for changes in project_applications table
     const channel = supabase
-      .channel('project_applications_channel')
+      .channel('project_applications_changes')
       .on(
         'postgres_changes',
         {
@@ -157,9 +166,7 @@ export function useProjectNotifications(userId: string) {
           fetchApplications();
         }
       )
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-      });
+      .subscribe();
       
     return () => {
       console.log('Cleaning up realtime subscription');
@@ -189,20 +196,10 @@ export function useProjectNotifications(userId: string) {
         prev.filter((application) => application.id !== applicationId)
       );
 
-      toast({
-        title: status === "accepted" ? "Application Accepted" : "Application Rejected",
-        description:
-          status === "accepted"
-            ? "The applicant has been notified of your decision"
-            : "The applicant will be notified of your decision",
-      });
+      return true;
     } catch (error) {
       console.error("Failed to update application status:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update application status. Please try again.",
-        variant: "destructive",
-      });
+      throw error;
     }
   };
 
