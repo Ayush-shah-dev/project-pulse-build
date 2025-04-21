@@ -19,9 +19,10 @@ const ProjectApplicationNotificationItem = ({
 }: Props) => {
   const [isProcessing, setIsProcessing] = useState(false);
   
-  const applicantName =
-    `${application.applicant.first_name || ""} ${application.applicant.last_name || ""}`.trim() ||
-    "Anonymous User";
+  // Get applicant name, providing a fallback for incomplete profiles
+  const firstName = application.applicant.first_name || "Anonymous";
+  const lastName = application.applicant.last_name || "User";
+  const applicantName = `${firstName} ${lastName}`.trim();
     
   console.log("Rendering application item:", application);
   
@@ -61,7 +62,14 @@ const ProjectApplicationNotificationItem = ({
             <AvatarFallback>{applicantName.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium">{applicantName}</div>
+            <div className="font-medium">
+              {applicantName}
+              {(!application.applicant.first_name || !application.applicant.last_name) && (
+                <span className="text-xs text-amber-500 ml-2 font-normal">
+                  (Incomplete Profile)
+                </span>
+              )}
+            </div>
             <div className="text-sm text-muted-foreground">
               Applied to{" "}
               <Link

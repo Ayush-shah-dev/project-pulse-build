@@ -88,7 +88,7 @@ export function useProjectNotifications(userId: string) {
         userProjects.map(project => [project.id, project.title])
       );
       
-      // Fetch applicant details for all applications
+      // Process applications and fetch applicant details
       const enhancedApplications: ProjectApplication[] = [];
       
       for (const app of pendingApplications) {
@@ -98,13 +98,15 @@ export function useProjectNotifications(userId: string) {
             .from("profile_details")
             .select("id, first_name, last_name")
             .eq("id", app.applicant_id)
-            .single();
+            .maybeSingle(); // Using maybeSingle instead of single to handle cases where profile doesn't exist
             
           if (applicantError) {
             console.error(`Error fetching applicant details for ${app.applicant_id}:`, applicantError);
+            // Continue processing other applications even if we can't get this one's applicant details
             continue;
           }
           
+          // Create a valid application object with default values for missing profile information
           enhancedApplications.push({
             ...app,
             project: {
@@ -112,8 +114,8 @@ export function useProjectNotifications(userId: string) {
             },
             applicant: {
               id: app.applicant_id,
-              first_name: applicantData?.first_name || null,
-              last_name: applicantData?.last_name || null
+              first_name: applicantData?.first_name || "Anonymous",
+              last_name: applicantData?.last_name || "User"
             }
           });
         } catch (error) {
