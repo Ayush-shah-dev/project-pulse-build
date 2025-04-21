@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProjectApplicationModalProps {
   open: boolean;
@@ -29,6 +29,7 @@ const DEFAULT_QUESTIONS = [
 const ProjectApplicationModal = ({ open, onOpenChange, onSubmit, loading }: ProjectApplicationModalProps) => {
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
   const [showError, setShowError] = useState(false);
+  const { toast } = useToast();
 
   const handleChange = (id: string, value: string) => {
     setAnswers(prev => ({ ...prev, [id]: value }));
@@ -42,8 +43,17 @@ const ProjectApplicationModal = ({ open, onOpenChange, onSubmit, loading }: Proj
       setShowError(true);
       return;
     }
-    await onSubmit({ why: answers.why, experience: answers.experience });
-    setAnswers({});
+    
+    try {
+      await onSubmit({ why: answers.why, experience: answers.experience });
+      setAnswers({});
+    } catch (error) {
+      toast({
+        title: "Application Error",
+        description: "There was a problem submitting your application. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -65,10 +75,11 @@ const ProjectApplicationModal = ({ open, onOpenChange, onSubmit, loading }: Proj
                   className="resize-none"
                 />
               ) : (
-                <Input
+                <input
                   value={answers[q.id] || ""}
                   onChange={e => handleChange(q.id, e.target.value)}
                   required
+                  className="w-full px-3 py-2 border border-input rounded-md"
                 />
               )}
             </div>
